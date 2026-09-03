@@ -1,0 +1,8 @@
+# Pinned to what the results in docs/METHOD.md were produced with.
+fastf1==3.8.3
+numpy==2.4.3
+pandas==2.3.0
+statsmodels==0.15.0
+scipy==1.16.2
+matplotlib==3.11.0
+pyarrow==21.0.0

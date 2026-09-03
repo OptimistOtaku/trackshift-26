@@ -1,0 +1,16 @@
+# FastF1 downloads and derived frames - large, reproducible, not source
+data/cache/
+data/frames/
+data/*.parquet
+
+# generated outputs. Figures and result tables are small and are the point of the repo, so
+# they are committed; logs and cached frames are noise and are not.
+artifacts/*.log
+artifacts/*.parquet
+
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+.DS_Store
