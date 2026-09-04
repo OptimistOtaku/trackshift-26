@@ -21,7 +21,8 @@ ART = os.path.join(ROOT, "artifacts")
 OUT = os.path.join(ART, "PITWALL_TrackShift2026.pptx")
 
 # EDIT ME: replace with your registered team name before uploading.
-TEAM = "‹ your team name ›"
+TEAM = "Handsome Squidward"
+MEMBERS = "Aditya  ·  Ruhani"
 
 # ---- palette ------------------------------------------------------------ #
 INK = RGBColor(0x0E, 0x11, 0x16)
@@ -155,10 +156,11 @@ tf2 = box(s, 1.2, 4.6, 11, 2)
 para(tf2, "We built the model everyone builds, proved it gives the wrong answer,",
      15, SUBTLE, first=True, after=1)
 para(tf2, "and shipped the one that survives an actual race.", 15, SUBTLE, after=0)
-tf3 = box(s, 1.2, 6.35, 11.5, 0.9)
+tf3 = box(s, 1.2, 6.2, 11.5, 1.1)
 para(tf3, "AI Motorsport Intelligence   ·   Tyre Degradation Intelligence",
-     12.5, RGBColor(0xC5, 0xCB, 0xD1), first=True, after=2)
-para(tf3, f"Team {TEAM}", 12.5, ACCENT, bold=True, after=0)
+     12.5, RGBColor(0xC5, 0xCB, 0xD1), first=True, after=3)
+para(tf3, f"Team {TEAM}", 12.5, ACCENT, bold=True, after=2)
+para(tf3, MEMBERS, 12, SUBTLE, after=0)
 
 
 # ======================================================================== #
@@ -415,9 +417,10 @@ for i, (big, small, col) in enumerate(tiles):
     t = box(s, x + 0.28, 4.4, 3.0, 1.5, anchor=MSO_ANCHOR.MIDDLE)
     para(t, big, 30, PAPER, bold=True, first=True, after=4)
     para(t, small, 12, SUBTLE, after=0, spacing=1.05)
-tf3 = box(s, 1.2, 6.5, 11, 0.6)
-para(tf3, f"Team {TEAM}   ·   AI Motorsport Intelligence   ·   TrackShift 2026",
-     13, SUBTLE, first=True, after=0)
+tf3 = box(s, 1.2, 6.4, 11.5, 0.9)
+para(tf3, f"Team {TEAM}   ·   {MEMBERS}", 13, RGBColor(0xC5, 0xCB, 0xD1),
+     first=True, after=3)
+para(tf3, "AI Motorsport Intelligence   ·   TrackShift 2026", 12, SUBTLE, after=0)
 
 prs.save(OUT)
 print("wrote", OUT, "—", len(prs.slides._sldIdLst), "slides")
