@@ -108,14 +108,15 @@ def fig_identification(evo_slopes: pd.DataFrame, path: str) -> str:
     d = evo_slopes.sort_values("order")
     fig, ax = plt.subplots(figsize=(7.6, 4.3))
     ax.bar(d["Session"], d["median"], 0.6, color=ACCENT)
+    ax.set_ylim(0, 1.2)
     ax.axhline(1.0, color=WARN, lw=1.6, ls="--")
-    ax.annotate("tyre age, for comparison: 1.0 per lap in every run",
-                xy=(0.02, 1.0), xytext=(0.02, 1.06), fontsize=9.5, color=WARN)
+    ax.text(-0.45, 1.035, "tyre age advances at 1.0 per lap in every run  (dashed)",
+            fontsize=9.5, color=WARN, ha="left", va="bottom")
     for xi, (_, r) in enumerate(d.iterrows()):
         ax.text(xi, r["median"], f" {r['median']:.3f}", ha="center", va="bottom",
                 fontsize=9.5)
     ax.set_ylabel("rubber regressor,\nchange per lap within a run")
-    ax.set_title("Rubber is separable from tyre age only because it saturates")
+    ax.set_title("Rubber is separable from tyre age only because it saturates", pad=12)
     return _save(fig, path)
 
 
