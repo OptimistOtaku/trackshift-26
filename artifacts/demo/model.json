@@ -1,0 +1,32 @@
+{
+  "spec": [
+    "pair",
+    "tt",
+    "traf"
+  ],
+  "intercept": 1.61736,
+  "tt_mean": 40.9572,
+  "tt_coef": 0.040942,
+  "traf_coef": 0.502208,
+  "pairs": {
+    "HARD>HARD": 0.0,
+    "HARD>MEDIUM": 0.219995,
+    "HARD>SOFT": -0.113154,
+    "MEDIUM>HARD": -0.361964,
+    "MEDIUM>MEDIUM": -1.042951,
+    "MEDIUM>SOFT": -0.932082,
+    "SOFT>HARD": -0.302555,
+    "SOFT>MEDIUM": -0.974094,
+    "SOFT>SOFT": -0.481424
+  },
+  "reference_pair": "HARD>HARD",
+  "degradation": {
+    "b1": 0.070371,
+    "b2": -0.00164,
+    "peak_age": 21.458624,
+    "max_age_seen": 50.0,
+    "note": "phi(a) = b1*a + b2*a^2, HELD FLAT past peak_age. Never let it decline - a declining phi claims tyres get faster as they wear, which is the sign error this project exists to point at."
+  },
+  "fresh_age": 3.0,
+  "n_obs": 288
+}

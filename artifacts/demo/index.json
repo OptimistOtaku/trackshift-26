@@ -1,0 +1,130 @@
+{
+  "season": 2026,
+  "generated": "2026-09-09",
+  "headline": {
+    "stops": 288,
+    "events": 12,
+    "rmse_s": 0.949591,
+    "calib_slope": 0.816557,
+    "mae_s": 0.740151,
+    "bias_s": 0.072872,
+    "n_scored": 284,
+    "events_scored": 11
+  },
+  "pit_loss": {
+    "season_median_s": 21.746667,
+    "min_s": 20.068929,
+    "max_s": 23.666512
+  },
+  "window_is_not_reported": "A pit-lap recommendation is deliberately absent. It covers 66.9% of real stops but a width-matched mid-race window covers 66.2%, so it adds nothing over 'pit halfway through'. See scripts/check_window_placebo.py.",
+  "races": [
+    {
+      "round": 1,
+      "event": "Australian Grand Prix",
+      "laps": 58,
+      "file": "races/R01.json",
+      "pit_loss_s": 21.696154,
+      "track_temp_c": 36.28552,
+      "stops": 25
+    },
+    {
+      "round": 2,
+      "event": "Chinese Grand Prix",
+      "laps": 56,
+      "file": "races/R02.json",
+      "pit_loss_s": 22.194259,
+      "track_temp_c": 21.335042,
+      "stops": 4
+    },
+    {
+      "round": 3,
+      "event": "Japanese Grand Prix",
+      "laps": 53,
+      "file": "races/R03.json",
+      "pit_loss_s": 22.202436,
+      "track_temp_c": 32.604054,
+      "stops": 5
+    },
+    {
+      "round": 4,
+      "event": "Miami Grand Prix",
+      "laps": 57,
+      "file": "races/R04.json",
+      "pit_loss_s": 20.352395,
+      "track_temp_c": 38.193733,
+      "stops": 19
+    },
+    {
+      "round": 5,
+      "event": "Canadian Grand Prix",
+      "laps": 68,
+      "file": "races/R05.json",
+      "pit_loss_s": 22.796394,
+      "track_temp_c": 18.332721,
+      "stops": 21
+    },
+    {
+      "round": 6,
+      "event": "Monaco Grand Prix",
+      "laps": 78,
+      "file": "races/R06.json",
+      "pit_loss_s": 22.132515,
+      "track_temp_c": 41.760026,
+      "stops": 14
+    },
+    {
+      "round": 7,
+      "event": "Barcelona Grand Prix",
+      "laps": 66,
+      "file": "races/R07.json",
+      "pit_loss_s": 23.666512,
+      "track_temp_c": 50.026253,
+      "stops": 40
+    },
+    {
+      "round": 8,
+      "event": "Austrian Grand Prix",
+      "laps": 71,
+      "file": "races/R08.json",
+      "pit_loss_s": 21.690325,
+      "track_temp_c": 51.092599,
+      "stops": 41
+    },
+    {
+      "round": 9,
+      "event": "British Grand Prix",
+      "laps": 47,
+      "file": "races/R09.json",
+      "pit_loss_s": 20.97781,
+      "track_temp_c": 40.540751,
+      "stops": 24
+    },
+    {
+      "round": 10,
+      "event": "Belgian Grand Prix",
+      "laps": 44,
+      "file": "races/R10.json",
+      "pit_loss_s": 21.459667,
+      "track_temp_c": 31.204104,
+      "stops": 18
+    },
+    {
+      "round": 11,
+      "event": "Hungarian Grand Prix",
+      "laps": 70,
+      "file": "races/R11.json",
+      "pit_loss_s": 21.994933,
+      "track_temp_c": 50.256696,
+      "stops": 43
+    },
+    {
+      "round": 12,
+      "event": "Dutch Grand Prix",
+      "laps": 72,
+      "file": "races/R12.json",
+      "pit_loss_s": 20.068929,
+      "track_temp_c": 33.921475,
+      "stops": 34
+    }
+  ]
+}
