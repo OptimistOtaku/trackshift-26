@@ -36,7 +36,7 @@ Models & methods: a two-stage hierarchical estimator (fuel sensitivity λ identi
 
 Ground truth is a natural experiment, not the model's own fit. Across a pit stop tyre age resets while fuel barely changes, so the step in pace measures the tyre effect directly. We validate against 288 such stops with leave-one-event-out cross-validation, granting no method a free constant — the model must get the level right, not merely the shape. Metric: RMSE in s/lap of predicted vs observed stop value.
 
-Result: PITWALL beats the season-mean baseline by +11.9% RMSE at a calibration slope of 0.82 (1.0 = magnitudes correct), and wins 7 of 11 held-out events. It is robust to method-blind outlier caps (+10–12% across all cuts). Fitted effects are individually significant with event-clustered SEs (track temp +0.041 s/°C, p<0.001; traffic +0.50 s, p=0.003). We also run falsification checks (the traffic measure rises monotonically from P1–3 to P16–20, as it must) and state our limits plainly: the pooled gain is carried by larger events, and track temperature partly proxies circuit identity across only 12 events.
+Result: PITWALL beats the season-mean baseline by +11.1% RMSE at a calibration slope of 0.79 (1.0 = magnitudes correct), and wins 7 of 11 held-out events. It is robust to method-blind outlier caps (+9.6–11.1% across all cuts). Fitted effects are individually significant with event-clustered SEs (track temp +0.039 s/°C, p<0.001; traffic +0.50 s, p=0.003). We also run falsification checks (the traffic measure rises monotonically from P1–3 to P16–20, as it must) and state our limits plainly: the pooled gain is carried by larger events, and track temperature partly proxies circuit identity across only 12 events.
 
 ---
 

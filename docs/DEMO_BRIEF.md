@@ -213,9 +213,12 @@ model works** — no computation needed, it's already in the file.
 
 **No "recommended pit lap." No "optimal strategy."** This is the important one.
 
-I built the pit-window recommender and then tested it, and it failed: it covers 66.9% of real
-stops, but a window of the same width just placed mid-race covers 66.2%. It adds nothing over
-"pit halfway through the race." So it's out of the product.
+I built the pit-window recommender and then tested it, and it failed. It covers 68.4% of real
+stops against 65.8% for a window of the same width just placed mid-race — a 2.6-point edge, too
+small to lean on. And the test that actually decides it is worse: per event, does our window
+*move* with the lap teams chose? The mid-race **constant** tracks it better than we do (r=+0.73
+vs +0.64, MAE 4.9 laps vs 8.4), and with race length divided out our centre carries no signal at
+all (r=+0.08, p=0.80). So it adds nothing over "pit halfway through the race." So it's out of the product.
 
 If you put a recommended lap in the UI, a judge will ask how we validated it, and the honest
 answer is "we did, and it didn't beat a trivial heuristic." Much better to not have the feature

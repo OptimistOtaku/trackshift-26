@@ -20,15 +20,20 @@ artifacts/demo/
 ```jsonc
 {
   "season": 2026,
-  "generated": "2026-09-09",
+  "generated": "2026-09-11",
   "headline": {
     "stops": 288,
     "events": 12,
-    "rmse_s": 0.9496,          // out-of-sample, leave-one-event-out
-    "baseline_rmse_s": 1.0776, // season-mean baseline
-    "improvement_pct": 11.9,
-    "calib_slope": 0.8166,     // 1.0 = magnitudes right
-    "events_won": 7,
+    "rmse_s": 0.958068,          // out-of-sample, leave-one-event-out
+    "baseline_rmse_s": 1.077265, // season mean, scored through the SAME loop
+    "baseline_spec": "season mean, same leave-one-event-out loop",
+    "improvement_pct": 11.06482,
+    "calib_slope": 0.785165,     // 1.0 = magnitudes right
+    "mae_s": 0.745371,
+    "bias_s": 0.069421,
+    "n_scored": 284,             // stops, after the min-5-per-event filter
+    "events_won": 7,             // events where the model beat the baseline head to head
+    "events_compared": 11,
     "events_scored": 11
   },
   "pit_loss": { "season_median_s": 21.75, "min_s": 20.07, "max_s": 23.67 },
@@ -38,6 +43,16 @@ artifacts/demo/
   ]
 }
 ```
+
+⚠️ **`rmse_s`, `calib_slope` and `improvement_pct` moved on 11 Sep** (from 0.9496 / 0.8166 /
+11.9) when a track-temp causality leak was fixed — the term had been using the whole race's
+mean, so a stop on lap 10 of 71 was reading laps 11–71. Read them from the file rather than
+from any older screenshot. Shapes are unchanged.
+
+`baseline_rmse_s` is the season mean scored through the same leave-one-event-out loop, not a
+mean taken over the whole season — a pooled mean would have seen the event it is scoring.
+`events_won` is a per-event head-to-head, because a pooled RMSE gain can be carried by one
+good event and 7 of 11 says the gain is broad.
 
 ## `model.json`
 
@@ -56,7 +71,7 @@ step = intercept
   "spec": ["pair", "tt", "traf"],
   "intercept": 1.05,
   "tt_mean": 43.7,
-  "tt_coef": 0.041,
+  "tt_coef": 0.0392,
   "traf_coef": 0.50,
   "pairs": { "HARD>HARD": 0.0, "MEDIUM>HARD": 0.62, "SOFT>MEDIUM": 0.88 },
   "degradation": {
@@ -81,6 +96,7 @@ One file per race. `laps` drives the replay scrubber; `stops` are the real decis
 ```jsonc
 {
   "round": 8, "event": "Austrian Grand Prix", "laps": 71,
+  "last_clean_lap": 71,
   "pit_loss_s": 21.69, "track_temp_c": 51.1,
   "drivers": ["VER", "NOR", "..."],
   "laps_data": [
@@ -96,6 +112,25 @@ One file per race. `laps` drives the replay scrubber; `stops` are the real decis
 
 `step_obs_s` is measured, `step_pred_s` is the model out of sample. Plotting them against each
 other IS the validation figure — no extra computation needed.
+
+### Two things about this file that will bite a scrubber
+
+**`laps_data` is filtered and therefore has holes.** It was built to *fit* a model, so it keeps
+only green, non-pit, accurate laps. That leaves **62 laps across the season with no rows at all**
+— Monaco 60–71, Austria 24–25, Britain's last five. Use
+**[`replay/R*.json`](REPLAY_DATA.md)** for the scrubber instead: same field names, zero blank
+laps, plus per-lap `green` / `in_lap` / `out_lap` / `deleted` / `clean` / `track_status`. Its
+`clean: true` rows reproduce `laps_data` row for row, so the two feeds differ by nothing but the
+filter. Keep an empty-state guard in either case.
+
+**`laps` is the real race length; `last_clean_lap` is where `laps_data` runs out.** These differ
+whenever a race finished behind a safety car — Britain is 52 and 47. Until 11 Sep `laps` *was*
+the clean max, so `races/R09.json` claimed a 52-lap race was 47 laps long and the scrubber's
+track silently ended five laps early. Size the slider off `laps`.
+
+**`stops` contains the whole race, including the future.** At lap 16 the array already holds a
+stop that happens on lap 17, so anything lap-indexed must filter `pit_lap <= L` first. The full
+array is correct for the validation scatter, which is a post-race view.
 
 ---
 
@@ -121,20 +156,33 @@ for (let k = 1; k <= 8; k++) {
 }
 ```
 
-At Austria, lap 25, 1.5 s behind a rival on an equally old tyre: **+1.80 s on the first lap, so
+At Austria, lap 25, 1.5 s behind a rival on an equally old tyre: **+1.76 s on the first lap, so
 they are caught even if they respond immediately.** That matches real F1 undercut values
-(~1.5–2.5 s) and it is the number to put on screen large.
+(~1.5–2.5 s) and it is the number to put on screen large. (It was +1.80 before the 11 Sep
+causality fix — if you compute 1.80, your `model.json` is stale.)
 
 Show `tyre_deficit_laps` too — the cost of the undercut is emerging that many laps older than
 the car you just passed. It is what makes the tool honest rather than a hype machine.
 
+⚠️ **Show the rate and the subtraction; never assert the outcome.** "A fresh tyre buys you
+1.76 s/lap, you are 1.5 s behind" is defensible. "Undercut works" / "you will gain a place" is
+not — see the undercut backtest below.
+
 ### What NOT to build
 
 **No pit-window recommendation.** We tested it (`scripts/check_window_placebo.py`): it covers
-66.9% of real stops but a width-matched mid-race window covers 66.2%, so it adds nothing over
-"pit halfway through." It stays in the codebase as a diagnostic and in the deck as a negative
-result. Don't put a "recommended lap" in the UI — we can't defend it, and being asked to defend
-it is worse than not having it.
+68.4% of real stops against 65.8% for a width-matched mid-race window. That 2.6-point edge is
+too small to lean on, and the deciding test is worse — per event, the mid-race *constant* tracks
+the lap teams chose better than our window centre does (r=+0.73 vs +0.64, MAE 4.9 vs 8.4 laps),
+and with race length divided out our centre carries no signal at all (r=+0.08, p=0.80). It stays
+in the codebase as a diagnostic and in the deck as a negative result. Don't put a "recommended
+lap" in the UI — we can't defend it, and being asked to defend it is worse than not having it.
+
+**No claim that we predict who comes out ahead.** Scored against 137 real head-to-head duels
+(`scripts/check_undercut_backtest.py`), the undercut margin ranks outcomes at AUC 0.836 — and so
+does the gap alone, with no model. The model's own term scored by itself is AUC 0.490, a coin
+flip. `margin = gain − gap`, and sd(gain) is 0.46 s against sd(gap) 14.6 s, so a term 31× smaller
+cannot reorder anything.
 
 **No safety-car probability input that looks fitted.** If SC appears, it is a slider the user
 sets, labelled as an assumption. Twelve races at twelve circuits is one observation per

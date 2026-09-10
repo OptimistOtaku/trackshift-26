@@ -168,7 +168,9 @@ def fig_age_null(stops: pd.DataFrame, age_stats: dict, path: str) -> str:
     ax.set_ylabel("pace gained by fitting a new tyre (s/lap)")
     ax.set_title("Degradation accumulates for ~20 laps, then stops — not forever")
     ax.annotate(f"linear:     {age_stats['lin_slope']:+.4f} s/lap, p = {age_stats['lin_p']:.2f}\n"
-                f"quadratic:  age p<0.001, age$^2$ p<0.001, joint p = {age_stats['joint_p']:.3f}",
+                f"quadratic:  age p={age_stats['quad_age_p']:.3f}, "
+                f"age$^2$ p={age_stats['quad_age2_p']:.3f}, "
+                f"joint p = {age_stats['joint_p']:.3f}",
                 xy=(0.97, 0.04), xycoords="axes fraction", ha="right", fontsize=9.5,
                 bbox=dict(boxstyle="round,pad=0.45", fc="#f4f4f4", ec="#cccccc"))
     ax.legend(loc="upper left", fontsize=9)

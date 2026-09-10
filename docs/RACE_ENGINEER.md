@@ -694,5 +694,6 @@ the template. Never ship an unvalidated line into the cache without marking it.
 - [ ] Full demo rehearsed once with wifi physically off.
 - [ ] If `model.json` is refit again: regenerate the commentary, re-run the validator, and
       re-check every hardcoded number in `docs/` before rehearsing. The refit on 11 Sep moved
-      Austria's `MEDIUM>HARD` step from 1.67 to 1.63 s/lap and DEMO_BRIEF section 3's reference
-      case has not been updated - it says `+1.80 s` where the shipped model now gives `+1.76 s`.
+      Austria's `MEDIUM>HARD` step from 1.67 to 1.63 s/lap and its reference case from `+1.80 s`
+      to `+1.76 s`. Both `DEMO_BRIEF.md` section 3 and `DEMO_CONTRACT.md` now carry 1.76, so a
+      computed 1.80 means a stale `model.json` rather than a stale doc.

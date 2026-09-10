@@ -80,6 +80,16 @@ And the compound benefit doesn't depend on *when* you take it, so neither edge o
 comes from tyre physics — the early edge is stint feasibility, the late edge is laps-left-to-
 repay, and both are just arithmetic on race length.
 
+If pushed the other way — *"2.6 points is still better, why not ship it?"* — that's the sharp
+version of the question and it deserves a real answer, not a shrug:
+
+> Because I can't tell you what it's better *at*. Coverage rises whenever you widen a window,
+> so a window that covered everything would score 100% and know nothing — it's not a measure of
+> skill. Underneath those 2.6 points there's no per-event tracking at all, which is what you'd
+> expect from a window that happens to sit in a slightly luckier place on this one season. For
+> me to ship it, it has to beat the constant on the test a constant is built to fail. It loses
+> that one.
+
 ### "Does your undercut calculator tell me if I'll gain a place?"
 
 **No, and say so plainly.** We tested this last night and it failed.

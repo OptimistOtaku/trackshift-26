@@ -11,7 +11,7 @@ Minimising race time needs the per-lap pace of a stint that was never run - pace
 `a` on a compound this driver did not fit. Two things go wrong when you try to get it here:
 
   1. Pooling compounds. `fit_degradation` recovers the age effect within a compound pair, so
-     it is the *pure* wear effect: at most 0.56 s/lap at saturation. But the measured mean step
+     it is the *pure* wear effect: at most 0.76 s/lap at saturation. But the measured mean step
      is +1.26 s/lap. The difference is the compound change itself. In F1 the value of a stop is
      mostly which tyre you fit, not how worn the old one was.
 
@@ -32,18 +32,19 @@ found by trying to validate the window rather than by admiring it, so it is writ
 next to the code that produces it.
 
 `agreement` scores the window against all 288 measured stops, leave-one-event-out. It covers
-66.9% of the laps teams actually chose, with a window spanning 47% of the race. That sounds
+68.4% of the laps teams actually chose, with a window spanning 47% of the race. That sounds
 like a result. It is not:
 
-    PITWALL window placement       66.9%
-    width-matched random window    54.2%   (p < 0.0001, 2000 permutations)
-    width-matched MID-RACE window  66.2%   <- the whole problem
+    PITWALL window placement       68.4%
+    width-matched random window    54.4%   (p < 0.0001, 2000 permutations)
+    width-matched MID-RACE window  65.8%
 
-Placement beats random, so the window is not pure width. But it does not beat "pit halfway
-through the race", and per event the mid-race constant tracks the median chosen lap BETTER
-than the window centre does (r=+0.72 vs +0.62, MAE 4.8 vs 8.8 laps). Divide race length out
-and the window centre carries no information about where in the race teams stopped at all
-(r=+0.04, p=0.91).
+Placement beats random, so the window is not pure width. On coverage it edges a width-matched
+mid-race window (68.4% vs 65.8%), but that margin is too small to lean on and is not the test
+that decides. The test that decides is per event: the mid-race constant tracks the median
+chosen lap BETTER than the window centre does (r=+0.73 vs +0.64, MAE 4.9 vs 8.4 laps). Divide
+race length out and the window centre carries no information about where in the race teams
+stopped at all (r=+0.08, p=0.80).
 
 The cause is structural, not a tuning problem. `dL` does not depend on when it is taken, so
 neither edge of the window is set by tyre physics: the early edge is stint feasibility and the
@@ -63,8 +64,8 @@ radio, with the rival's gap on the screen:
             is one to eight laps, where the data is densest: most stops in the sample fit a
             tyre about three laps old, so ages 0-15 carry the most observations.
 
-            What it reduces to is the validated step itself: RMSE 0.95 s/lap out of sample,
-            calibration slope 0.82, +11.9% on a season-mean baseline. The undercut is that
+            What it reduces to is the validated step itself: RMSE 0.96 s/lap out of sample,
+            calibration slope 0.79, +11.1% on a season-mean baseline. The undercut is that
             number put to work, not a new model layered on top of it.
 
   PAYBACK   how many laps on the new tyre before the stop repays its own pit loss. Reported as
@@ -74,7 +75,7 @@ THE INGREDIENTS, ALL MEASURED.
 
   pit loss   `build_pitloss.py`, from the in-laps and out-laps that `clean_laps` discards.
              21.75 s season median, 20.1-23.7 s across circuits after shrinkage.
-  the step   `stopvalue.fit_stop_value`, the specification that scores +11.9% RMSE out of
+  the step   `stopvalue.fit_stop_value`, the specification that scores +11.1% RMSE out of
              sample against a season-mean baseline. This supplies the LEVEL.
   the shape  `fit_degradation`, the age terms of the same fit. This supplies how the advantage
              DECAYS as the new tyre ages.
@@ -409,9 +410,11 @@ def agreement(stops: pd.DataFrame, season: pd.DataFrame,
     ask whether the lap the team chose falls inside. Leave-one-event-out by default: the model
     scoring a stop at Silverstone has never seen Silverstone.
 
-    THIS TEST IS THE REASON THE WINDOW IS NOT THE PRODUCT. It returns 66.9% coverage, which
-    looks like a pass until you race it against a width-matched window placed mid-race, which
-    returns 66.2%. Run `scripts/check_window_placebo.py` for the full comparison. Kept in the
+    THIS TEST IS THE REASON THE WINDOW IS NOT THE PRODUCT. It returns 68.4% coverage, which
+    looks like a pass; a width-matched window placed mid-race covers 65.8%, so it edges the
+    constant by too small a margin to lean on. What decides it is the per-event test: that
+    mid-race constant tracks each event's median chosen lap better than the window centre does.
+    Run `scripts/check_window_placebo.py` for the full comparison. Kept in the
     codebase because a metric that killed a feature is worth more than one that flattered it,
     and because any future change to the window has to beat the same placebo.
 
