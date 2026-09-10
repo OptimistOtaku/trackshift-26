@@ -199,6 +199,44 @@ Three things worth knowing about it:
 if (rows.length === 0) return <Caption>No timing data for this lap</Caption>;
 ```
 
+### Three more traps in the replay feed — I hit all three building the fallback
+
+**3. `track_status` is a concatenation of codes, not one code.** `"671"` does not mean status
+671; it means statuses 6, 7 and 1 all occurred during that lap (VSC deployed, VSC ending,
+green). There are 24 distinct combinations across the season. So looking the whole string up in
+`track_status_codes` misses on everything except the single-digit cases, and you get raw digits
+on screen:
+
+```js
+// WRONG — prints "126 / 26"
+const label = codes[row.track_status];
+// RIGHT — split into characters, drop green, then look each one up
+const flags = [...new Set(String(row.track_status ?? '').split(''))]
+  .filter(c => c && c !== '1').map(c => codes[c] || c);
+```
+
+This is worth getting right because it's the payoff of the whole replay feed: at Austria laps
+24–25 — the exact two laps missing from the filtered feed — it renders **YELLOW · VSC
+DEPLOYED**. The judge sees *why* there was a hole instead of seeing a hole.
+
+**4. `compound` is not always one of SOFT/MEDIUM/HARD.** The feed also contains
+`INTERMEDIATE` and `null`. So the `currentCompound + '>HARD'` lookup in §4 above returns
+`undefined` for those rows, and `?? 0` then silently scores them as if they were `HARD>HARD` —
+a wrong number on screen with no error. Check the pair exists first and render a dash if it
+doesn't:
+
+```js
+const pair = `${row.compound}>HARD`;
+const buys = model.pairs[pair] != null ? step0({pair, trackTemp}) - phi(age) + phi(3) : null;
+```
+
+**5. `drivers[]` can be shorter in `races/` than in `replay/`, and by a different amount per
+race.** Austria is 20 in `races/` against 22 in `replay/`; Australia is 20 in both; Britain is
+22 in both. The filtered feed only lists drivers who set a clean lap, so the gap is however many
+drivers never set one. Don't size anything off one feed and index it with the other. Row counts
+also fall through a race as cars retire — Austria is 22 on lap 1, 19 by lap 24, 8 on the last
+lap. That's real, not missing data.
+
 ---
 
 ## 5. Feature 3 — Validation, if there's time
@@ -312,6 +350,37 @@ are additive — new files, no changes to what you already read.
 
 Ping me for anything — especially if a number here doesn't match what you're seeing. That'd
 mean I've made an error, and I'd rather find it tonight than on stage.
+
+---
+
+## 9a. There's a working fallback at `demo_fallback/` — steal from it
+
+**This is not competing with your build.** `demo/` is yours and it's what we show. I built
+`demo_fallback/index.html` for two reasons: so there is something clickable if your build isn't
+finished by Saturday morning, and because writing it was the only way to find traps 3–5 above.
+If yours works, we show yours and this never comes up.
+
+```bash
+python -m http.server 8000     # from the repo root
+# then http://localhost:8000/demo_fallback/
+```
+
+It's one file, no build step, no framework, no CDN, nothing from the network — so it passes the
+"turn the wifi off and reload" drill in [JUDGE_QA.md](JUDGE_QA.md) §4. All four surfaces work:
+undercut, sign flip, replay scrubber, validation scatter.
+
+**What's worth stealing rather than rewriting:**
+
+- The `phi` / `step0` / `undercut` functions are verified against the Python. The Austria
+  reference case comes out at **+1.760057** in the browser, against 1.760057 from
+  `model.json` in Python.
+- The `track_status` splitting and the missing-pair guard (traps 3 and 4).
+- The copy. Every string in it obeys §7 — it shows the rate and the subtraction and never
+  asserts the outcome.
+- Every number is read from the JSON at runtime. Nothing is hardcoded, so a re-export can't
+  leave a stale figure on a slide.
+
+Take the logic, drop the styling — you'll do the visual side better than I have.
 
 ---
 

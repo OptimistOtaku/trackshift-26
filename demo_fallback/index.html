@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<!--
+  PITWALL — fallback demo.  TrackShift 2026, Mohali.
+
+  THIS IS THE PARACHUTE, NOT THE PRODUCT.  Ruhani owns `demo/`; this exists so that
+  if her build is not finished, or breaks on the day, there is still something a judge
+  can click.  If `demo/` works, show that instead.
+
+  Deliberate constraints, do not "improve" these:
+    - ONE file.  No build step, no npm, no framework, no CDN.  Nothing can fail to
+      compile on stage and nothing needs the network.  The failure drill in
+      docs/JUDGE_QA.md is "turn the wifi off and reload" - that has to pass.
+    - Charts are hand-rolled inline SVG for the same reason.
+    - Every number is read from artifacts/demo/*.json at runtime.  Nothing is
+      hardcoded, so a re-export cannot leave a stale figure on screen.
+
+  Run it:   python -m http.server 8000    (from the repo root)
+            http://localhost:8000/demo_fallback/
+  NOT as file:// - fetch is blocked by CORS and you lose twenty minutes to it.
+
+  Copy rules from docs/DEMO_BRIEF.md sec.7 are enforced in here on purpose.  We show the
+  RATE and the SUBTRACTION; we never assert the outcome.  "UNDERCUT WORKS" is a
+  falsified claim (AUC 0.836 vs 0.836 for the gap alone) and must not appear.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PITWALL — tyre degradation intelligence</title>
+<style>
+  :root{
+    --ink:#e8e9ed; --dim:#9aa0ab; --faint:#6b7280;
+    --bg:#0d1117; --panel:#161b22; --line:#272d38;
+    --accent:#3fa7dc; --good:#2ecc71; --warn:#e07a5f; --red:#e63946;
+    --soft:#e63946; --medium:#f4d03f; --hard:#f0f3f7; --inter:#2ecc71;
+    --mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:15px/1.55 'Segoe UI',system-ui,-apple-system,sans-serif}
+  a{color:var(--accent)}
+  header{border-bottom:1px solid var(--line);padding:18px 26px;display:flex;
+         align-items:baseline;gap:18px;flex-wrap:wrap}
+  h1{margin:0;font-size:23px;letter-spacing:.16em;font-weight:600}
+  .tag{color:var(--dim);font-size:13px}
+  .head-nums{margin-left:auto;display:flex;gap:22px;flex-wrap:wrap}
+  .head-nums div{font-size:12px;color:var(--faint);text-align:right}
+  .head-nums b{display:block;font-family:var(--mono);font-size:17px;color:var(--ink);
+               font-weight:600}
+  nav{display:flex;gap:2px;padding:0 26px;border-bottom:1px solid var(--line);
+      flex-wrap:wrap;background:var(--bg);position:sticky;top:0;z-index:5}
+  nav button{background:none;border:0;border-bottom:2px solid transparent;color:var(--dim);
+             padding:13px 17px;font:inherit;font-size:14px;cursor:pointer}
+  nav button:hover{color:var(--ink)}
+  nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+  main{padding:26px;max-width:1280px}
+  section[hidden]{display:none}
+  h2{margin:0 0 4px;font-size:19px;font-weight:600}
+  .sub{color:var(--dim);margin:0 0 22px;font-size:14px;max-width:78ch}
+  .grid{display:grid;grid-template-columns:minmax(310px,380px) 1fr;gap:26px;
+        align-items:start}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:19px}
+  label{display:block;font-size:12px;color:var(--dim);margin:15px 0 5px;
+        text-transform:uppercase;letter-spacing:.07em}
+  label:first-child{margin-top:0}
+  select,input[type=range]{width:100%}
+  select{background:#0d1117;color:var(--ink);border:1px solid var(--line);
+         border-radius:5px;padding:8px;font:inherit}
+  input[type=range]{accent-color:var(--accent);margin:0}
+  .val{font-family:var(--mono);color:var(--accent);float:right;font-size:12px}
+  .hero{font-family:var(--mono);font-size:min(8.4vw,52px);line-height:1.06;
+        color:var(--good);font-weight:600;margin:2px 0 2px;letter-spacing:-.02em}
+  .hero-u{font-size:22px;color:var(--dim);font-weight:400;letter-spacing:0}
+  .sum{font-family:var(--mono);font-size:15px;margin:16px 0 0;
+       border-top:1px solid var(--line);padding-top:14px}
+  .sum div{display:flex;justify-content:space-between;gap:16px;padding:3px 0}
+  .sum .k{color:var(--dim)}
+  .cost{color:var(--warn);margin-top:14px;font-size:13.5px;border-left:2px solid var(--warn);
+        padding-left:11px}
+  .note{color:var(--faint);font-size:12.5px;margin-top:15px;line-height:1.5}
+  table{border-collapse:collapse;width:100%;font-size:13.5px}
+  th,td{text-align:right;padding:6px 9px;border-bottom:1px solid var(--line);
+        font-family:var(--mono)}
+  th{color:var(--faint);font-weight:500;font-size:11.5px;text-transform:uppercase;
+     letter-spacing:.06em;font-family:'Segoe UI',sans-serif}
+  td:first-child,th:first-child,td.l,th.l{text-align:left}
+  tr.ahead td{color:var(--good)}
+  tr.dirty td{color:var(--faint);font-style:italic}
+  .pill{display:inline-block;padding:1px 7px;border-radius:3px;font-size:11px;
+        font-family:var(--mono);color:#0d1117;font-weight:700}
+  .c-SOFT{background:var(--soft);color:#fff}.c-MEDIUM{background:var(--medium)}
+  .c-HARD{background:var(--hard)}.c-INTERMEDIATE{background:var(--inter)}
+  .c-none{background:var(--faint);color:#fff}
+  .tabs{display:flex;gap:7px;margin-bottom:15px}
+  .tabs button{background:#0d1117;border:1px solid var(--line);color:var(--dim);
+               padding:6px 15px;border-radius:5px;cursor:pointer;font:inherit;font-size:13px}
+  .tabs button[aria-pressed="true"]{border-color:var(--accent);color:var(--ink)}
+  .badge{font-size:11px;padding:2px 8px;border-radius:3px;background:#2b1d1a;
+         color:var(--warn);border:1px solid var(--warn);font-family:var(--mono)}
+  .stat{display:flex;gap:26px;flex-wrap:wrap;margin:0 0 15px}
+  .stat div{font-size:12px;color:var(--faint)}
+  .stat b{display:block;font-family:var(--mono);font-size:16px;color:var(--ink)}
+  svg{display:block;width:100%;height:auto}
+  .lg{display:flex;gap:19px;font-size:12.5px;color:var(--dim);margin-top:11px;flex-wrap:wrap}
+  .lg i{display:inline-block;width:22px;height:0;border-top:2px solid;
+        vertical-align:middle;margin-right:6px}
+  .err{background:#2b1d1a;border:1px solid var(--warn);color:var(--warn);
+       padding:15px;border-radius:6px;font-family:var(--mono);font-size:13px}
+  .scrub{display:flex;gap:14px;align-items:center;margin-bottom:15px}
+  .scrub input{flex:1}
+  .lapno{font-family:var(--mono);font-size:26px;min-width:118px}
+  .flag{font-size:12px;font-family:var(--mono);padding:2px 8px;border-radius:3px}
+  .f-sc{background:#3a2f16;color:var(--medium)}.f-red{background:#3a1a1e;color:var(--red)}
+  footer{color:var(--faint);font-size:12px;padding:22px 26px;border-top:1px solid var(--line);
+         margin-top:34px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>PITWALL</h1>
+  <span class="tag">Tyre degradation intelligence &middot; 2026 season</span>
+  <div class="head-nums" id="headnums"></div>
+</header>
+
+<nav id="nav">
+  <button data-t="undercut" aria-selected="true">Undercut</button>
+  <button data-t="signflip" aria-selected="false">The sign flip</button>
+  <button data-t="replay" aria-selected="false">Race replay</button>
+  <button data-t="validation" aria-selected="false">Validation</button>
+</nav>
+
+<main>
+  <div id="boot" class="err" hidden></div>
+
+  <!-- ============================ 1. UNDERCUT (hero) ======================= -->
+  <section id="s-undercut">
+    <h2>What a fresh tyre buys you, right now</h2>
+    <p class="sub">The question a race engineer asks with the gap on the screen: I pit now,
+      they respond a lap or two later &mdash; does one lap of clear air cover the gap?
+      Both cars serve the same pit lane, so the ~22&nbsp;s pit loss cancels out of the
+      comparison. That is <em>why</em> undercuts work.</p>
+    <div class="grid">
+      <div class="card">
+        <label for="u-race">Race</label>
+        <select id="u-race"></select>
+        <label for="u-pair">Compound change <span class="val" id="u-pair-v"></span></label>
+        <select id="u-pair"></select>
+        <label for="u-mine">My tyre age, about to come off <span class="val" id="u-mine-v"></span></label>
+        <input type="range" id="u-mine" min="1" max="50" value="24">
+        <label for="u-theirs">Rival tyre age <span class="val" id="u-theirs-v"></span></label>
+        <input type="range" id="u-theirs" min="1" max="50" value="24">
+        <label for="u-gap">Gap to rival, behind <span class="val" id="u-gap-v"></span></label>
+        <input type="range" id="u-gap" min="0" max="5" step="0.1" value="1.5">
+        <p class="note" id="u-ctx"></p>
+      </div>
+      <div>
+        <div class="card">
+          <div class="hero" id="u-rate">&mdash;</div>
+          <div class="hero-u">seconds per lap, from a fresh tyre</div>
+          <div class="sum" id="u-sum"></div>
+          <div class="cost" id="u-cost"></div>
+          <p class="note">The pit loss cancels &mdash; both cars serve the same pit lane, so it
+            drops out of the subtraction. What is left is pace.
+            <br><br><strong>This tool does not tell you that you will gain a place.</strong>
+            We backtested that claim against 137 real head-to-head duels and it failed: our
+            margin ranks the winner at AUC 0.836, and so does the gap alone with no model.
+            The rate is ours and it is validated. The gap is on every timing screen in the pit
+            lane. So we show the rate, we show the subtraction, and you decide.</p>
+        </div>
+        <div class="card" style="margin-top:20px">
+          <table>
+            <thead><tr><th class="l">If they respond after</th><th>You gain</th>
+              <th>Gap becomes</th><th>Tyre deficit</th></tr></thead>
+            <tbody id="u-rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ 2. SIGN FLIP ============================= -->
+  <section id="s-signflip" hidden>
+    <h2>The obvious fit says tyres get faster as they wear. It&rsquo;s fuel.</h2>
+    <p class="sub">Fit lap time against tyre age on practice long runs &mdash; the standard
+      approach &mdash; and two of the three compounds come back claiming a worn tyre is
+      <em>quicker</em> than a fresh one. Inside a run the car burns about a kilogram of fuel
+      for every lap the tyre ages, so the two are collinear and the age slope absorbs the fuel
+      effect, which pulls the other way. We estimated fuel sensitivity on <em>race</em> laps
+      instead, where the same tyre age appears at many fuel loads, and imported it.</p>
+    <div class="stat" id="sf-stat"></div>
+    <div class="tabs" id="sf-tabs"></div>
+    <div class="card">
+      <div id="sf-chart"></div>
+      <div class="lg">
+        <span><i style="border-color:#6b7280;border-top-style:dashed"></i>naive fit &mdash; no fuel correction</span>
+        <span><i style="border-color:#3fa7dc"></i>deconfounded &mdash; fuel measured and removed</span>
+      </div>
+      <p class="note" id="sf-note"></p>
+    </div>
+  </section>
+
+  <!-- ============================ 3. REPLAY ================================ -->
+  <section id="s-replay" hidden>
+    <h2>Race replay</h2>
+    <p class="sub">Every lap FastF1 recorded &mdash; including safety-car, VSC, in- and
+      out-laps. Greyed rows were excluded from model fitting; they are not wrong, they are
+      just not clean pace. For each car, what a stop <em>on this lap</em> would buy.</p>
+    <div class="scrub">
+      <select id="r-race" style="width:auto"></select>
+      <span class="lapno" id="r-lapno">lap &mdash;</span>
+      <input type="range" id="r-lap" min="1" max="71" value="1">
+      <span id="r-flag"></span>
+    </div>
+    <div class="grid" style="grid-template-columns:1fr minmax(260px,330px)">
+      <div class="card">
+        <table>
+          <thead><tr><th>Pos</th><th class="l">Driver</th><th class="l">Tyre</th><th>Age</th>
+            <th>Lap time</th><th>A stop now buys</th></tr></thead>
+          <tbody id="r-rows"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h3 style="margin:0 0 3px;font-size:15px">Stops so far</h3>
+        <p class="note" style="margin:0 0 11px">Only stops up to this lap. The file holds the
+          whole race, so anything lap-indexed has to filter the future out &mdash; showing a
+          judge a stop before it happened is the exact sin this project criticises.</p>
+        <table><tbody id="r-stops"></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ 4. VALIDATION ============================ -->
+  <section id="s-validation" hidden>
+    <h2>Measured against predicted, out of sample</h2>
+    <p class="sub">Every point is one real pit stop, scored by a model that never saw its
+      event. Ground truth is the step in pace across the stop: tyre age resets, fuel does not,
+      so the step measures the tyre effect with fuel cancelled by construction. That is why we
+      score against this and not against our own fit.</p>
+    <div class="stat" id="v-stat"></div>
+    <div class="grid" style="grid-template-columns:1fr 1fr">
+      <div class="card"><div id="v-chart"></div>
+        <p class="note">Diagonal is perfect prediction. Calibration slope is the fitted slope
+          of this cloud &mdash; 1.0 would mean the magnitudes are exactly right.</p></div>
+      <div class="card"><div id="v-hist"></div>
+        <p class="note">Residuals, predicted minus measured. Centred means unbiased on
+          average; the spread is the RMSE.</p></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  PITWALL &middot; TrackShift 2026 &middot; Aditya &amp; Ruhani &mdash;
+  every number on this page is read at runtime from <code>artifacts/demo/</code>.
+  Fallback build: no framework, no network.
+</footer>
+
+<script>
+/* ===================================================================== *
+ *  Data.  One fetch of index + model up front; races load on demand.
+ * ===================================================================== */
+const BASE = '../artifacts/demo/';
+const $ = s => document.querySelector(s);
+const fmt = (x, n = 2) => (x == null || !isFinite(x)) ? '—' : x.toFixed(n);
+const int = x => Math.round(Number(x));          // laps_data ships floats: 1.0 not 1
+
+let IDX, MODEL, DEG;
+const raceCache = new Map();
+
+async function getJSON(p){
+  const r = await fetch(BASE + p);
+  if(!r.ok) throw new Error(`${p} → HTTP ${r.status}`);
+  return r.json();
+}
+async function race(rnd, kind='races'){
+  const k = kind + rnd;
+  if(!raceCache.has(k))
+    raceCache.set(k, await getJSON(`${kind}/R${String(rnd).padStart(2,'0')}.json`));
+  return raceCache.get(k);
+}
+
+/* ===================================================================== *
+ *  The model, client side.  Mirrors src/pitwall/stopvalue.py.
+ * ===================================================================== */
+
+/* Tyre-age effect.  MUST saturate: the fitted quadratic has b2 < 0 and would bend
+   DOWNWARDS past its peak, which claims tyres get faster as they wear — the exact
+   sign error this whole project exists to point at.  Do not remove the clamp. */
+function phi(a){
+  const x = Math.min(Math.max(a, 0), DEG.peak_age);
+  return DEG.b1 * x + DEG.b2 * x * x;
+}
+
+/* Seconds per lap a fresh tyre buys, before any age arithmetic. */
+function step0(pair, trackTemp, dClose = 0){
+  return MODEL.intercept
+       + (MODEL.pairs[pair] ?? 0)
+       + MODEL.tt_coef   * (trackTemp - MODEL.tt_mean)
+       + MODEL.traf_coef * dClose;
+}
+
+/* THE HERO CALCULATION.  Verified against the Python to 4e-5 s:
+   Austria, MEDIUM>HARD, tt 51.0926, mine 24, theirs 24  →  +1.760057 s on lap one. */
+function undercut({pair, trackTemp, mine, theirs, gap, laps = 8}){
+  const dL = step0(pair, trackTemp) - phi(mine) + phi(MODEL.fresh_age);
+  const rows = [];
+  let gained = 0;
+  for(let k = 1; k <= laps; k++){
+    gained += dL + phi(theirs + k) - phi(k);
+    rows.push({k, gained, after: gap - gained, ahead: gap - gained < 0});
+  }
+  return rows;
+}
+
+/* ===================================================================== *
+ *  Tiny SVG helpers.  No chart library — nothing to fail to load offline.
+ * ===================================================================== */
+const SVGNS = 'http://www.w3.org/2000/svg';
+function svgEl(n, at = {}){
+  const e = document.createElementNS(SVGNS, n);
+  for(const k in at) e.setAttribute(k, at[k]);
+  return e;
+}
+function chart(w, h, pad = {l:58,r:16,t:14,b:40}){
+  const s = svgEl('svg', {viewBox:`0 0 ${w} ${h}`, style:'overflow:visible'});
+  const plot = {w: w - pad.l - pad.r, h: h - pad.t - pad.b, ...pad};
+  return {s, plot};
+}
+function axes(s, p, xr, yr, xlab, ylab, xticks = 6, yticks = 5){
+  const X = v => p.l + (v - xr[0]) / (xr[1] - xr[0]) * p.w;
+  const Y = v => p.t + p.h - (v - yr[0]) / (yr[1] - yr[0]) * p.h;
+  for(let i = 0; i <= yticks; i++){
+    const v = yr[0] + (yr[1] - yr[0]) * i / yticks, y = Y(v);
+    s.appendChild(svgEl('line', {x1:p.l, x2:p.l + p.w, y1:y, y2:y,
+      stroke:'#272d38', 'stroke-width':1}));
+    const t = svgEl('text', {x:p.l - 9, y:y + 4, fill:'#6b7280', 'font-size':11,
+      'text-anchor':'end', 'font-family':'monospace'});
+    t.textContent = v.toFixed(Math.abs(yr[1] - yr[0]) < 4 ? 1 : 0);
+    s.appendChild(t);
+  }
+  for(let i = 0; i <= xticks; i++){
+    const v = xr[0] + (xr[1] - xr[0]) * i / xticks, x = X(v);
+    const t = svgEl('text', {x, y:p.t + p.h + 20, fill:'#6b7280', 'font-size':11,
+      'text-anchor':'middle', 'font-family':'monospace'});
+    t.textContent = Math.round(v);
+    s.appendChild(t);
+  }
+  if(yr[0] < 0 && yr[1] > 0)            // zero line, where the sign flip reads
+    s.appendChild(svgEl('line', {x1:p.l, x2:p.l + p.w, y1:Y(0), y2:Y(0),
+      stroke:'#6b7280', 'stroke-width':1.4}));
+  const xt = svgEl('text', {x:p.l + p.w / 2, y:p.t + p.h + 37, fill:'#9aa0ab',
+    'font-size':12, 'text-anchor':'middle'});
+  xt.textContent = xlab; s.appendChild(xt);
+  const yt = svgEl('text', {x:14, y:p.t + p.h / 2, fill:'#9aa0ab', 'font-size':12,
+    'text-anchor':'middle', transform:`rotate(-90 14 ${p.t + p.h / 2})`});
+  yt.textContent = ylab; s.appendChild(yt);
+  return {X, Y};
+}
+function line(s, pts, X, Y, col, dash){
+  const d = pts.map((p, i) => `${i ? 'L' : 'M'}${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join('');
+  s.appendChild(svgEl('path', {d, fill:'none', stroke:col, 'stroke-width':2.2,
+    ...(dash ? {'stroke-dasharray':'6 4'} : {})}));
+}
+function nice(lo, hi){                   // pad a range so the curve never touches the frame
+  if(!isFinite(lo) || !isFinite(hi) || lo === hi) return [lo - 1, hi + 1];
+  const m = (hi - lo) * 0.08;
+  return [lo - m, hi + m];
+}
+
+/* ===================================================================== *
+ *  1. UNDERCUT
+ * ===================================================================== */
+function initUndercut(){
+  const rs = $('#u-race'), ps = $('#u-pair');
+  IDX.races.forEach(r => rs.add(new Option(`R${r.round} · ${r.event}`, r.round)));
+  // Austria is the best demo race — 71 laps, 41 stops. Default to it if present.
+  rs.value = IDX.races.some(r => r.round === 8) ? 8 : IDX.races[0].round;
+  Object.keys(MODEL.pairs).sort().forEach(p => ps.add(new Option(p.replace('>', ' → '), p)));
+  ps.value = MODEL.pairs['MEDIUM>HARD'] != null ? 'MEDIUM>HARD' : Object.keys(MODEL.pairs)[0];
+  ['#u-race','#u-pair','#u-mine','#u-theirs','#u-gap']
+    .forEach(s => $(s).addEventListener('input', drawUndercut));
+  drawUndercut();
+}
+function drawUndercut(){
+  const rnd  = +$('#u-race').value;
+  const r    = IDX.races.find(x => x.round === rnd);
+  const pair = $('#u-pair').value;
+  const mine = +$('#u-mine').value, theirs = +$('#u-theirs').value, gap = +$('#u-gap').value;
+
+  $('#u-mine-v').textContent   = mine + ' laps';
+  $('#u-theirs-v').textContent = theirs + ' laps';
+  $('#u-gap-v').textContent    = gap.toFixed(1) + ' s';
+  $('#u-pair-v').textContent   = 'off → on';
+  $('#u-ctx').innerHTML =
+    `Track temperature <b>${fmt(r.track_temp_c, 1)} °C</b> · measured pit loss here
+     <b>${fmt(r.pit_loss_s, 2)} s</b> · ${r.stops} real stops this race.
+     Track temp is read from the race, not typed in.`;
+
+  const rows = undercut({pair, trackTemp:r.track_temp_c, mine, theirs, gap});
+  const first = rows[0];
+  $('#u-rate').textContent = (first.gained >= 0 ? '+' : '') + fmt(first.gained, 2);
+
+  const covers = Math.ceil(gap / Math.max(first.gained, 1e-9));
+  $('#u-sum').innerHTML = `
+    <div><span class="k">a fresh tyre buys, lap one</span><span>${fmt(first.gained,2)} s</span></div>
+    <div><span class="k">you are behind by</span><span>${gap.toFixed(1)} s</span></div>
+    <div><span class="k">laps of clear air to cover it</span><span>${
+      first.gained <= 0 ? 'never — no pace gain' :
+      (covers <= 8 ? covers + (covers === 1 ? ' lap' : ' laps') : 'more than 8')
+    }</span></div>`;
+  $('#u-cost').innerHTML = `<strong>The cost.</strong> You rejoin on a tyre that is
+    fresh, but every lap they stay out you are one lap older than they will be when they
+    stop. Respond after ${first.k} lap and you carry a ${first.k}-lap tyre deficit.`;
+
+  $('#u-rows').innerHTML = rows.map(x => `
+    <tr class="${x.ahead ? 'ahead' : ''}">
+      <td class="l">${x.k} lap${x.k > 1 ? 's' : ''}</td>
+      <td>${fmt(x.gained, 2)} s</td>
+      <td>${x.after < 0 ? '−' : ''}${fmt(Math.abs(x.after), 2)} s${
+        x.ahead ? ' ✓' : ''}</td>
+      <td>${x.k} lap${x.k > 1 ? 's' : ''} older</td>
+    </tr>`).join('');
+}
+
+/* ===================================================================== *
+ *  2. SIGN FLIP
+ * ===================================================================== */
+function initSignFlip(){
+  const dc = MODEL.degradation_curves;
+  $('#sf-stat').innerHTML = `
+    <div><b>+${fmt(dc.lambda_fuel_s_per_kg, 4)} s/kg</b>fuel sensitivity, measured
+      (se ${fmt(dc.lambda_se_s_per_kg, 4)})</div>
+    <div><b>0.030–0.035</b>independent literature range</div>
+    <div><b>${dc.practice.n_laps}</b>practice laps, ${dc.practice.n_runs} long runs</div>
+    <div><b>${dc.lambda_events}</b>events used to identify λ</div>`;
+  const tabs = $('#sf-tabs');
+  ['HARD','MEDIUM','SOFT'].filter(c => dc.practice.compounds[c]).forEach((c, i) => {
+    const b = document.createElement('button');
+    b.textContent = c;
+    b.setAttribute('aria-pressed', i === 0);   // HARD first: the most dramatic flip
+    b.onclick = () => {
+      [...tabs.children].forEach(x => x.setAttribute('aria-pressed', x === b));
+      drawSignFlip(c);
+    };
+    tabs.appendChild(b);
+  });
+  drawSignFlip('HARD' in dc.practice.compounds ? 'HARD' : Object.keys(dc.practice.compounds)[0]);
+}
+function drawSignFlip(comp){
+  const C = MODEL.degradation_curves.practice.compounds[comp];
+  const nv = C.naive.curve.map(p => [p.age, p.delta_s]);
+  const dc = C.deconfounded.curve.map(p => [p.age, p.delta_s]);
+  const all = nv.concat(dc).map(p => p[1]);
+  const {s, plot} = chart(760, 400);
+  const {X, Y} = axes(s, plot, [C.age_lo, C.age_hi],
+                      nice(Math.min(...all), Math.max(...all)),
+                      'tyre age (laps)', 'seconds per lap slower than a fresh tyre');
+  line(s, nv, X, Y, '#6b7280', true);
+  line(s, dc, X, Y, '#3fa7dc', false);
+  $('#sf-chart').replaceChildren(s);
+
+  const worst = nv.reduce((a, b) => b[1] < a[1] ? b : a);
+  $('#sf-note').innerHTML = `
+    <strong>${comp}.</strong> ${C.sign_flip
+      ? `<span class="badge">SIGN FLIP</span> The naive fit slopes the wrong way:
+         ${fmt(C.naive.slope_s_per_lap, 4)} s/lap at age 10, against
+         ${fmt(C.deconfounded.slope_s_per_lap, 4)} once fuel is removed. At age
+         ${int(worst[0])} it bottoms out at ${fmt(worst[1], 2)} s/lap — it is seriously
+         claiming a ${int(worst[0])}-lap-old tyre is ${fmt(Math.abs(worst[1]), 1)} s a lap
+         quicker than a fresh one.`
+      : `The naive fit already has the right sign here —
+         ${fmt(C.naive.slope_s_per_lap, 4)} s/lap at age 10 — but it understates the real
+         figure of ${fmt(C.deconfounded.slope_s_per_lap, 4)} by
+         ${fmt(C.deconfounded.slope_s_per_lap / C.naive.slope_s_per_lap, 1)}×. The soft
+         degrades fast enough that the tyre effect beats the fuel effect even uncorrected.`}
+    <br><br>Both lines are pinned to zero at age ${int(C.anchor_age)}: practice identifies the
+    <em>shape</em> of a degradation curve and not its height, because every run has its own
+    intercept and every run is a single compound. Pinning both to the same anchor is what
+    makes the gap between them entirely the confounding.
+    <br><br>The harder the compound, the weaker the real degradation, and the more completely
+    fuel swamps it. That ordering across compounds is what you would predict if the confounder
+    is what we say it is — a random error would not line up that way.`;
+}
+
+/* ===================================================================== *
+ *  3. REPLAY
+ * ===================================================================== */
+let RRACE = null, RREPLAY = null;
+
+function initReplay(){
+  const rs = $('#r-race');
+  IDX.races.forEach(r => rs.add(new Option(`R${r.round} · ${r.event}`, r.round)));
+  rs.value = IDX.races.some(r => r.round === 8) ? 8 : IDX.races[0].round;
+  rs.onchange = loadReplay;
+  $('#r-lap').addEventListener('input', drawReplay);
+  loadReplay();
+}
+async function loadReplay(){
+  const rnd = +$('#r-race').value;
+  $('#r-rows').innerHTML = `<tr><td colspan="6" class="l">loading…</td></tr>`;
+  try{
+    // Unfiltered feed for the scrubber (zero blank laps); races/ for the real stops.
+    [RREPLAY, RRACE] = await Promise.all([race(rnd, 'replay'), race(rnd, 'races')]);
+  }catch(e){
+    $('#r-rows').innerHTML = `<tr><td colspan="6" class="l">could not load: ${e.message}</td></tr>`;
+    return;
+  }
+  const sl = $('#r-lap');
+  // Size off the real race length, not the last lap anyone set a clean time on.
+  sl.max = RRACE.laps; sl.value = Math.min(+sl.value || 1, RRACE.laps);
+  drawReplay();
+}
+function drawReplay(){
+  if(!RREPLAY) return;
+  const L = +$('#r-lap').value;
+  $('#r-lapno').textContent = `lap ${L} / ${RRACE.laps}`;
+
+  const rows = RREPLAY.laps_data.filter(r => int(r.lap) === L)
+                                .sort((a, b) => (a.position ?? 99) - (b.position ?? 99));
+
+  /* A safety car is the thing a judge should be able to SEE, not a gap in a table.
+     `track_status` is a CONCATENATION of single-digit codes, not one code: "671" means
+     VSC-deployed, VSC-ending and green all occurred within that lap. So split it into
+     characters — looking the whole string up in track_status_codes misses and prints
+     raw digits like "126 / 26" on screen. */
+  const codes = RREPLAY.track_status_codes || {};
+  const bad = [...new Set(rows.flatMap(r => String(r.track_status ?? '').split('')))]
+    .filter(c => c && c !== '1')                       // 1 is green; only flag the rest
+    .sort();
+  $('#r-flag').innerHTML = bad.length
+    ? `<span class="flag ${bad.includes('5') ? 'f-red' : 'f-sc'}">${
+        bad.map(c => codes[c] || c).join(' · ').toUpperCase()}</span>` : '';
+
+  if(!rows.length){        // must never happen on the replay feed, but the guard is free
+    $('#r-rows').innerHTML = `<tr><td colspan="6" class="l">No timing data for this lap</td></tr>`;
+  }else{
+    $('#r-rows').innerHTML = rows.map(r => {
+      const c = r.compound || 'none';
+      /* What a stop RIGHT NOW would buy: fit the hard, the usual end-of-race choice.
+         The feed also carries INTERMEDIATE and null compounds, for which no pair exists
+         in the model — show a dash rather than silently scoring them as HARD>HARD. */
+      const pair = `${c}>HARD`;
+      const buys = MODEL.pairs[pair] != null
+        ? step0(pair, RRACE.track_temp_c) - phi(int(r.tyre_age)) + phi(MODEL.fresh_age)
+        : null;
+      return `<tr class="${r.clean ? '' : 'dirty'}">
+        <td>${r.position != null ? int(r.position) : '—'}</td>
+        <td class="l">${r.driver}</td>
+        <td class="l"><span class="pill c-${c}">${c === 'none' ? '—' : c.slice(0,4)}</span></td>
+        <td>${r.tyre_age != null ? int(r.tyre_age) : '—'}</td>
+        <td>${r.lap_time_s != null ? fmt(r.lap_time_s, 3) : '—'}</td>
+        <td>${buys == null ? '—' : fmt(buys, 2) + ' s'}</td></tr>`;
+    }).join('');
+  }
+
+  // `stops` holds the WHOLE race including the future — filter or you show a judge a
+  // stop before it happened, which is the exact sin this project criticises.
+  const sofar = RRACE.stops.filter(s => s.pit_lap <= L)
+                           .sort((a, b) => b.pit_lap - a.pit_lap);
+  $('#r-stops').innerHTML = sofar.length
+    ? sofar.map(s => `<tr${s.pit_lap === L ? ' style="color:#3fa7dc"' : ''}>
+        <td class="l">L${s.pit_lap}</td><td class="l">${s.driver}</td>
+        <td class="l" style="font-size:11.5px">${s.pair.replace('>', '→')}</td>
+        <td>${fmt(s.step_obs_s, 2)} s</td></tr>`).join('')
+    : `<tr><td class="l">no stops yet</td></tr>`;
+}
+
+/* ===================================================================== *
+ *  4. VALIDATION
+ * ===================================================================== */
+async function initValidation(){
+  const h = IDX.headline;
+  $('#v-stat').innerHTML = `
+    <div><b>${fmt(h.rmse_s, 2)} s/lap</b>RMSE, out of sample</div>
+    <div><b>${fmt(h.calib_slope, 2)}</b>calibration slope</div>
+    <div><b>+${fmt(h.improvement_pct, 1)}%</b>vs season mean (${fmt(h.baseline_rmse_s, 2)} s/lap)</div>
+    <div><b>${h.events_won} / ${h.events_compared}</b>events won head to head</div>
+    <div><b>${h.stops}</b>stops analysed</div>`;
+
+  $('#v-chart').textContent = 'loading all 12 races…';
+  let stops = [];
+  try{
+    const all = await Promise.all(IDX.races.map(r => race(r.round, 'races')));
+    stops = all.flatMap(r => r.stops.filter(s => s.step_pred_s != null && s.step_obs_s != null));
+  }catch(e){
+    $('#v-chart').innerHTML = `<div class="err">could not load races: ${e.message}</div>`;
+    return;
+  }
+
+  const lo = Math.min(...stops.flatMap(s => [s.step_obs_s, s.step_pred_s]));
+  const hi = Math.max(...stops.flatMap(s => [s.step_obs_s, s.step_pred_s]));
+  const rg = nice(lo, hi);
+  const {s, plot} = chart(560, 460, {l:62,r:16,t:14,b:44});
+  const {X, Y} = axes(s, plot, rg, rg, 'measured step (s/lap)', 'predicted step (s/lap)');
+  s.appendChild(svgEl('line', {x1:X(rg[0]), y1:Y(rg[0]), x2:X(rg[1]), y2:Y(rg[1]),
+    stroke:'#6b7280', 'stroke-width':1.4, 'stroke-dasharray':'5 4'}));
+  stops.forEach(p => s.appendChild(svgEl('circle', {cx:X(p.step_obs_s), cy:Y(p.step_pred_s),
+    r:3, fill:'#3fa7dc', 'fill-opacity':.5})));
+  $('#v-chart').replaceChildren(s);
+
+  // Residual histogram — predicted minus measured.
+  const res = stops.map(p => p.step_pred_s - p.step_obs_s);
+  const rlo = Math.min(...res), rhi = Math.max(...res), nb = 26;
+  const bins = new Array(nb).fill(0);
+  res.forEach(v => bins[Math.min(nb - 1, Math.floor((v - rlo) / (rhi - rlo) * nb))]++);
+  const c2 = chart(560, 460, {l:62,r:16,t:14,b:44});
+  const A = axes(c2.s, c2.plot, [rlo, rhi], [0, Math.max(...bins) * 1.08],
+                 'predicted − measured (s/lap)', 'number of stops');
+  const bw = c2.plot.w / nb;
+  bins.forEach((n, i) => {
+    if(!n) return;
+    const x = A.X(rlo + (rhi - rlo) * i / nb);
+    c2.s.appendChild(svgEl('rect', {x:x + 1, y:A.Y(n), width:Math.max(bw - 2, 1),
+      height:A.Y(0) - A.Y(n), fill:'#3fa7dc', 'fill-opacity':.65}));
+  });
+  c2.s.appendChild(svgEl('line', {x1:A.X(0), x2:A.X(0), y1:c2.plot.t,
+    y2:c2.plot.t + c2.plot.h, stroke:'#e07a5f', 'stroke-width':1.6}));
+  $('#v-hist').replaceChildren(c2.s);
+}
+
+/* ===================================================================== *
+ *  Boot
+ * ===================================================================== */
+const started = {};
+$('#nav').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  [...$('#nav').children].forEach(x => x.setAttribute('aria-selected', x === b));
+  ['undercut','signflip','replay','validation'].forEach(t =>
+    $('#s-' + t).hidden = t !== b.dataset.t);
+  const t = b.dataset.t;
+  if(!started[t]){                      // load each surface once, on first view
+    started[t] = true;
+    if(t === 'replay') initReplay();
+    if(t === 'validation') initValidation();
+  }
+});
+
+(async function boot(){
+  try{
+    [IDX, MODEL] = await Promise.all([getJSON('index.json'), getJSON('model.json')]);
+    DEG = MODEL.degradation;
+    const h = IDX.headline;
+    $('#headnums').innerHTML = `
+      <div><b>${fmt(h.rmse_s, 2)}</b>s/lap RMSE, out of sample</div>
+      <div><b>${fmt(h.calib_slope, 2)}</b>calibration slope</div>
+      <div><b>+${fmt(h.improvement_pct, 1)}%</b>vs season mean</div>
+      <div><b>${h.stops}</b>real pit stops</div>
+      <div><b>${h.events}</b>races</div>`;
+    initUndercut();
+    initSignFlip();
+    started.undercut = started.signflip = true;
+  }catch(e){
+    const b = $('#boot');
+    b.hidden = false;
+    b.innerHTML = `Could not load the demo data: <b>${e.message}</b><br><br>
+      This page must be served over HTTP, not opened as a file:// URL —
+      <code>fetch</code> is blocked by CORS otherwise.<br><br>
+      From the repo root run <code>python -m http.server 8000</code> and open
+      <code>http://localhost:8000/demo_fallback/</code>`;
+  }
+})();
+</script>
+</body>
+</html>
