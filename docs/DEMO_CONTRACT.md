@@ -139,3 +139,141 @@ it is worse than not having it.
 **No safety-car probability input that looks fitted.** If SC appears, it is a slider the user
 sets, labelled as an assumption. Twelve races at twelve circuits is one observation per
 circuit; we cannot estimate it.
+
+---
+
+## `model.json` -> `degradation_curves` (added, nothing above changed)
+
+Purely additive. Every field documented above is still there, still spelled the same, still
+means the same thing. This block is new, and it carries the opening argument of the project.
+
+**What it is.** Fit `lap_time ~ tyre_age` on practice long runs the ordinary way - a run
+intercept, nothing else - and two of the three compounds come back claiming tyres get FASTER
+as they wear. Inside a run the car burns one lap of fuel for every lap the tyre ages, so fuel
+mass and tyre age are collinear and the age slope quietly absorbs the fuel effect, which has
+the opposite sign. The fix is to estimate the fuel sensitivity somewhere else: on race laps,
+where stints begin at different points in the race, so the same tyre age is seen at many fuel
+loads and fuel is separable from age. Subtract it, measure the rubber going down, and the sign
+flips.
+
+Slopes are s/lap at tyre age 10 (`slope_ref_age`). Positive means the tyre is losing pace,
+which is the direction physics allows:
+
+| compound | naive | deconfounded | |
+|---|---|---|---|
+| SOFT | +0.0518 | +0.1096 | right sign already, understated 2.1x |
+| MEDIUM | -0.0459 | +0.0738 | **sign flip** |
+| HARD | -0.1535 | +0.0631 | **sign flip** |
+
+`lambda_fuel_s_per_kg` is +0.0294 (se 0.0039), against a literature range of 0.030-0.035 s/kg.
+That agreement is the check that this is a real physical quantity and not a fitting artefact,
+and it is worth a line of copy on screen.
+
+### Shape
+
+```jsonc
+"degradation_curves": {
+  "slope_ref_age": 10.0,
+  "lambda_fuel_s_per_kg": 0.029425,   // estimated on race laps, applied to practice laps
+  "lambda_se_s_per_kg": 0.00394,
+  "lambda_events": 12,
+  "practice": {
+    "n_laps": 2991, "n_runs": 469,
+    "naive_spec": "no fuel correction, no traffic term, no track evolution",
+    "deconfounded_spec": "fuel corrected with lambda, traffic measured, rubber measured",
+    "compounds": {
+      "HARD": {
+        "age_lo": 2.0, "age_hi": 30.0,   // the tyre ages practice actually ran
+        "anchor_age": 2.0,               // both curves are pinned to delta_s = 0 here
+        "sign_flip": true,
+        "naive": {
+          "b1": -0.380873, "b2": 0.011368,
+          "slope_s_per_lap": -0.153516,       // s/lap at age 10 - NEGATIVE, the wrong one
+          "total_s_over_support": -0.478853,  // age 2 -> 30 across the whole curve
+          "curve": [ { "age": 2, "delta_s": 0.0 },
+                     { "age": 3, "delta_s": -0.324034 },
+                     /* ... */
+                     { "age": 17, "delta_s": -2.47326 },
+                     /* ... */
+                     { "age": 30, "delta_s": -0.478853 } ]
+        },
+        "deconfounded": {
+          "b1": 0.005766, "b2": 0.002868,
+          "slope_s_per_lap": 0.063123,
+          "total_s_over_support": 2.731018,
+          "curve": [ { "age": 2, "delta_s": 0.0 },
+                     { "age": 3, "delta_s": 0.020105 },
+                     /* ... */
+                     { "age": 30, "delta_s": 2.731018 } ]
+        }
+      },
+      "MEDIUM": { /* same fields */ },
+      "SOFT":   { /* same fields */ }
+    }
+  },
+  "race": { /* below */ },
+  "note": "...", "lambda_note": "...", "not_a_predictor": "..."
+}
+```
+
+`curve` is already sampled at every whole lap from `age_lo` to `age_hi`, and `age` is a JSON
+**integer**, not a float like `laps_data.tyre_age`. Both curves for a compound share the same
+ages, so they plot straight onto one axis with no interpolation and no arithmetic:
+
+```js
+const H = model.degradation_curves.practice.compounds.HARD;
+// x: H.naive.curve[i].age   y: H.naive.curve[i].delta_s
+// x: H.deconfounded.curve[i].age   y: H.deconfounded.curve[i].delta_s
+```
+
+**Worked example, HARD.** Both lines leave `age = 2` at exactly `delta_s = 0`. By age 17 the
+naive line has fallen to **-2.473 s/lap** - it is claiming a HARD tyre seventeen laps old is
+two and a half seconds a lap quicker than a nearly new one - and it is still at -0.479 at age
+30. The deconfounded line climbs the whole way, +0.321 by age 10 and **+2.731** by age 30. Two
+lines, one axis, opposite directions: that is the picture.
+
+**Why both curves start at zero.** Practice identifies the SHAPE of a degradation curve and not
+its level. Every run has its own intercept and every run is a single compound, so nothing in
+the data says whether a SOFT is intrinsically quicker than a MEDIUM. Both curves are therefore
+pinned to zero at `anchor_age` (the youngest tyre age the fit saw), and `delta_s` reads
+"seconds per lap slower than a tyre of that age, same compound". Pinning both to the same
+anchor is what makes the gap between the lines entirely the confounding, and not a choice about
+where the axis starts.
+
+### `degradation_curves.race`
+
+```jsonc
+"race": {
+  "b1": 0.070371, "b2": -0.00164,
+  "peak_age": 21.458624, "max_age_seen": 50.0, "n_stops": 288,
+  "curve": [ { "age": 0,  "delta_s": 0.0 },
+             { "age": 1,  "delta_s": 0.068731 },
+             /* ... */
+             { "age": 20, "delta_s": 0.751543 },
+             { "age": 21, "delta_s": 0.754686 },
+             { "age": 22, "delta_s": 0.755031 },   // clamped at peak_age from here on
+             /* ... */
+             { "age": 50, "delta_s": 0.755031 } ]
+}
+```
+
+`b1`, `b2` and `peak_age` are the same numbers as `degradation` at the top of `model.json` -
+this is that same `phi`, sampled at every whole lap from 0 to the oldest tyre a measured stop
+came off. It agrees with the `phi` snippet above to within 0.15 ms, which is the rounding of
+`b1` and `b2`, so the gauge and the curve are one object and cannot drift apart on screen.
+
+**The tail is flat and must be drawn flat.** Every point from age 22 to age 50 is exactly
+`0.755031`. That is the saturation clamp, not a bug and not a plotting artefact: the fitted
+quadratic has `b2 < 0` and would bend downwards past its peak, which would claim tyres get
+faster as they wear. If your chart library smooths it into a decline, fix the chart library.
+
+### What to do with these curves
+
+Draw them. That is the whole permitted use.
+
+The deconfounded practice curve is defensible in sample and **does not transfer to a race** -
+calibration slope +0.006 against the measured pit-stop step, which is why `stopvalue.py` exists
+at all. So do not compute an undercut, a stop value or a lap time from
+`degradation_curves.practice`. Anything that computes uses `degradation` / `degradation_curves.race`,
+exactly as it did before this block was added. The block also carries a `not_a_predictor`
+string saying so, in case this page and the file ever get separated.

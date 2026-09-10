@@ -45,10 +45,20 @@ doesn't, so nothing you build will break.
 Numbers you can put on screen as fact:
 
 - **288** pit stops analysed, **12** races, full 2026 season
-- **0.95 s/lap** RMSE, out-of-sample (leave-one-event-out)
-- **0.82** calibration slope (1.0 = magnitudes exactly right)
-- **+11.9%** better than a season-average baseline
+- **0.96 s/lap** RMSE, out-of-sample (leave-one-event-out)
+- **0.79** calibration slope (1.0 = magnitudes exactly right)
+- **+11.1%** better than a season-average baseline
 - **21.75 s** measured pit loss (season median; 20.1–23.7 s across circuits)
+
+These moved slightly on 11 Sep when I fixed a causality leak (a track-temp term was using the
+whole race's average, so at lap 10 it was reading laps 11–71). RMSE was 0.95, calibration 0.82,
+improvement 11.9%. **The numbers above are the current ones — take them from here, not from an
+older screenshot.**
+
+**All five are now live fields in `index.json` → `headline`; nothing needs hardcoding.**
+`rmse_s`, `calib_slope`, `improvement_pct`, `baseline_rmse_s` and `events_won` are all there as
+of the latest export. If a number on your screen disagrees with this table, trust your screen
+and tell me — that means I've let this doc go stale, not that you've wired it wrong.
 
 ⚠️ In `laps_data`, `lap`, `tyre_age` and `position` come out of JSON as **floats** (`1.0`, not
 `1`). Coerce before you use them as keys or labels.
@@ -106,17 +116,24 @@ function undercut({ pair, trackTemp, myTyreAge, rivalTyreAge, gapS, laps = 8 }) 
 (dropdown, 9 options from `model.pairs`), my tyre age (slider 1–50), rival tyre age (slider
 1–50), gap in seconds (slider 0–5, step 0.1).
 
-**The output that should be biggest on the page:**
+**The output that should be biggest on the page — the RATE, then the arithmetic:**
 
 ```
-UNDERCUT WORKS
-+1.80 s on the first lap out
-They only have to stay out 1 more lap
+A fresh tyre buys you 1.76 s/lap here
+You are 1.5 s behind
+One lap of clear air covers it
+
 Cost: you rejoin 1 lap older than the car you just passed
 ```
 
-Reference case to check your wiring — Austria, `MEDIUM>HARD`, track temp 51.1, my tyre 24
-laps, rival 24 laps, gap 1.5 s → **+1.80 s on lap one, works, needs them out 1 lap.**
+⚠️ **Do not print "UNDERCUT WORKS" as a verdict.** I backtested exactly that claim against 137
+real head-to-head duels this season and it failed a placebo — see §6. We can defend the rate.
+We cannot defend "you will gain a place." Show the subtraction and let the user conclude; that
+is what a race engineer actually does, and it is the version that survives a judge's question.
+
+Reference case to check your wiring — Austria, `MEDIUM>HARD`, track temp 51.09, my tyre 24
+laps, rival 24 laps, gap 1.5 s → **+1.76 s on lap one, so one lap of clear air covers 1.5 s.**
+(This was 1.80 before the 11 Sep causality fix. If you get 1.80, re-pull.)
 
 Two things that make this land with judges:
 
@@ -137,6 +154,50 @@ age, lap time. Mark anyone whose `pit_lap === L` in `stops`.
 
 The bit that ties it to the model: for each driver, show what a stop **right now** would buy
 them — `step0({ pair: currentCompound + '>HARD', trackTemp })`. As you scrub, the numbers move.
+
+### Two traps in this feature. Both will bite you.
+
+**1. `stops` contains the whole race, including the future.** At lap 16 the array already holds
+a stop that happens on lap 17. If you render it unfiltered you are showing the judge a pit stop
+before it has happened, which is the exact sin this project exists to criticise. Always:
+
+```js
+const sofar = race.stops.filter(s => s.pit_lap <= L);
+```
+
+Same for anything derived from it. The full array is still the right thing for the validation
+scatter in §5 — that's a post-race view, so there it's fine.
+
+**2. Some laps have no rows at all and the table goes blank — FIXED, use the new feed.**
+`laps_data` in `races/R*.json` was filtered to green, non-pit, accurate laps because it was
+built to *fit* a model. That leaves **62 holes across the season** — Austria is missing 24 and
+25, Monaco 60–71, Britain its last five.
+
+**`artifacts/demo/replay/R01…R12.json` now exists and has zero blank laps in all twelve races.**
+Point the scrubber at it. Same field names as `laps_data` plus per-lap flags:
+
+```js
+const race = await fetch('../artifacts/demo/replay/R08.json').then(r => r.json());
+// each row adds: green, in_lap, out_lap, deleted, clean, track_status
+const rows = race.laps_data.filter(r => r.lap === L);
+```
+
+Three things worth knowing about it:
+
+- `clean: true` reproduces the old `laps_data` **row for row**, so the two feeds provably differ
+  by nothing but the filter. Grey out the non-clean rows rather than dropping them — that's how
+  the judge sees a safety car instead of a gap.
+- `lap`, `tyre_age` and `position` are real **integers** here, not the float trap in §2.
+- **Don't re-derive `clean` as `green && !in_lap && !out_lap && !deleted`.** It won't match: lap
+  1 passes all four and is still excluded from the fit, because a standing start puts it seconds
+  outside the pace band. Use the `clean` field.
+
+**Keep the empty-state guard anyway.** It costs nothing and it's the difference between
+"handled" and "broken" if anything is missing on the day:
+
+```js
+if (rows.length === 0) return <Caption>No timing data for this lap</Caption>;
+```
 
 ---
 
@@ -160,6 +221,22 @@ If you put a recommended lap in the UI, a judge will ask how we validated it, an
 answer is "we did, and it didn't beat a trivial heuristic." Much better to not have the feature
 and be able to say *we tested it and cut it* — that's a strength, not a gap.
 
+**No claim that we predict who comes out ahead.** Same story, found last night. I scored the
+undercut against 137 real duels — A running behind B, A pits, B responds later, who's ahead
+afterwards (`scripts/check_undercut_backtest.py`).
+
+It looks like a hit: cars we flagged won 34% of the time, cars we called against won 5%
+(p < 0.0001). But rank the same duels by **the gap alone, no model at all** and you get AUC
+0.836; our margin gets 0.836 too. Identical. Our model's own contribution, scored by itself, is
+AUC 0.490 — a coin flip.
+
+The reason is a ruler, not a bug. The margin is `gain − gap`. Across those duels the gain we
+supply has a spread of 0.46 s; the gap has a spread of 14.6 s. A term 30× smaller than the one
+it's subtracted from can't change the ordering, so `gain − gap` is just `−gap` in a costume.
+
+**So: show the rate, show the subtraction, never assert the outcome.** The rate is ours and it's
+validated. The gap is on every timing screen in the pit lane and we didn't discover it.
+
 **No safety-car probability that looks fitted.** If SC appears at all it's a slider the user
 sets, labelled as their assumption. We have 12 races at 12 different circuits — one observation
 each — so we cannot estimate it and won't pretend to.
@@ -172,14 +249,15 @@ The modelling is defensible; the labels have to be too. One overclaiming word un
 
 | ✅ Use | ❌ Never |
 |---|---|
-| "Undercut available" | "Optimal strategy" |
-| "A fresh tyre buys 1.8 s/lap here" | "Predicted lap time" |
-| "Measured across 288 real pit stops" | "AI-powered" / "machine learning" |
-| "Out-of-sample RMSE 0.95 s/lap" | "95% accurate" |
-| "Pit loss measured at 21.7 s" | "Simulated race" |
+| "A fresh tyre buys 1.8 s/lap here" | "Undercut works" / "you will gain a place" |
+| "One lap of clear air covers 1.5 s" | "Optimal strategy" |
+| "Measured across 288 real pit stops" | "Predicted lap time" |
+| "Out-of-sample RMSE 0.96 s/lap" | "AI-powered" / "machine learning" |
+| "Pit loss measured at 21.7 s" | "95% accurate" / "Simulated race" |
 
-We never predict lap times and we never simulate a race — we predict *the pace a fresh tyre
-buys*, which is a different and much better-supported claim. Keep the copy on that.
+We never predict lap times, we never simulate a race, and we never predict positions — we
+predict *the pace a fresh tyre buys*, which is a different and much better-supported claim.
+Keep the copy on that.
 
 ---
 
@@ -199,14 +277,116 @@ changes — without anyone explaining what to click.
 
 ---
 
-## 9. What I'm doing
+## 9. What changed on 11 Sep, and what I'm doing
 
-Deck rewrite, the validation figures, and fixing one causality leak in the model (a track-temp
-term currently uses a race average, which at lap 10 technically knows the future — irrelevant
-to the published numbers, but indefensible in a live replay).
+Three things landed tonight. **Re-pull before you do anything else.**
 
-**`model.json` values may change slightly when I fix that. The field names will not.** Just
-re-pull before Saturday and your code keeps working.
+1. **Causality leak fixed.** A track-temp term was using the whole race's average, so at lap 10
+   it was reading laps 11–71. Now it's an expanding mean over laps so far. Every headline number
+   moved slightly (§2) and the Austria reference case went 1.80 → 1.76. All field names are
+   unchanged, so nothing you've built breaks.
+2. **The undercut's headline changed from a verdict to a rate** (§3, §6). This is the one that
+   affects what you're building right now — sorry for the churn, but I'd rather eat it tonight
+   than have a judge find it tomorrow.
+3. **Two replay traps documented** (§4). The `stops` future leak is the one to fix first; it's
+   a one-line filter.
+
+Still coming from me: an unfiltered replay feed so the scrubber stops going blank on safety-car
+laps, and the degradation curve exported so we can draw the naive-vs-corrected sign flip. Both
+are additive — new files, no changes to what you already read.
+
+**Both of those landed later the same night**, along with two more:
+
+4. **The unfiltered replay feed is in** (`artifacts/demo/replay/`) — §4 rewritten. Zero blank
+   laps across all twelve races, per-lap green/in-lap/out-lap/deleted/clean flags.
+5. **The sign-flip curves are in** (`model.json` → `degradation_curves`) — see §10.
+6. **`races/R*.json` had the wrong race length for Britain** — it said 47 laps for a 52-lap
+   race, because it was taking the highest lap anyone set a *clean* time on and Silverstone
+   finished under a safety car. If your scrubber's track stopped early there, that was this,
+   not you. Fixed, and there's a new `last_clean_lap` field so you can tell the two apart.
+7. **`improvement_pct`, `baseline_rmse_s` and `events_won` are now real fields** in
+   `index.json` → `headline`. Nothing in §2 needs hardcoding any more.
 
 Ping me for anything — especially if a number here doesn't match what you're seeing. That'd
 mean I've made an error, and I'd rather find it tonight than on stage.
+
+---
+
+## 10. Feature 4 — The sign flip (new data, `model.json` → `degradation_curves`)
+
+This is the chart that opens the story, and until tonight it wasn't in the demo data. It is now.
+Slot it **between P1 and P2** in §8: it's more valuable than the validation scatter and less
+valuable than the scrubber, and it is the least code of the three.
+
+**The story in one paragraph.** Do the obvious thing — fit lap time against tyre age on practice
+long runs — and two of the three compounds tell you tyres get *faster* the more you wear them.
+Nothing is broken. Inside a practice run the car burns one lap of fuel for every lap the tyre
+ages, so fuel and tyre age move together and the age slope swallows the fuel effect, which pulls
+the other way. You cannot separate them with practice data at all. So we estimate the fuel
+sensitivity on *race* laps instead, where stints start at different points in the race and the
+same tyre age turns up at many different fuel loads. Subtract that, measure the rubber going
+down, and the curves flip over.
+
+**The numbers, s/lap at tyre age 10:**
+
+| compound | naive fit | deconfounded | |
+|---|---|---|---|
+| SOFT | +0.0518 | +0.1096 | right sign, but understated 2.1× |
+| MEDIUM | **−0.0459** | +0.0738 | sign flip |
+| HARD | **−0.1535** | +0.0631 | sign flip |
+
+Fuel sensitivity came out at **+0.0294 s/kg (se 0.0039)**, against a literature range of
+0.030–0.035 s/kg. Put that on screen — it's the line that says we measured a real thing rather
+than tuned a number until the picture looked right.
+
+**What to draw.** One chart, one compound at a time (a three-tab or three-button switcher is
+plenty). X axis is tyre age, Y axis is `delta_s`. Two lines:
+
+```js
+const C = model.degradation_curves.practice.compounds.HARD;  // or MEDIUM / SOFT
+// grey / dashed:  C.naive.curve         → [{ age, delta_s }, …]
+// bright:         C.deconfounded.curve  → [{ age, delta_s }, …]
+```
+
+No maths. The points are already sampled at every whole lap over the ages practice actually ran
+(`age_lo` → `age_hi`), both lines share the same ages, and `age` is a real integer here — not
+the float trap in `laps_data`. Both lines start at exactly `delta_s = 0`, because practice can
+only identify the *shape* of a degradation curve and not its height, so we pin both to zero at
+the youngest tyre in the fit. Say that in a caption if there's room; it's the kind of honesty a
+judge notices.
+
+**HARD is the one to show first.** The naive line dives to **−2.47 s/lap by age 17** — it is
+seriously claiming a seventeen-lap-old HARD is two and a half seconds a lap quicker than a fresh
+one — and never gets back above zero. The deconfounded line climbs the whole way to **+2.73** by
+age 30. Opposite directions, same laps, same regression, one confounder removed.
+
+Each compound also carries `sign_flip` (true for MEDIUM and HARD, false for SOFT), so you can
+badge the flip without hardcoding which ones flipped.
+
+**Copy that works here:** *"The obvious fit says tyres get faster as they wear. It's fuel."* And
+the label under the axis: *"seconds per lap slower than a 2-lap-old tyre."* Don't write
+"corrected" or "improved" — the naive line isn't a mistake we made, it's the answer the standard
+method gives, which is the entire point.
+
+### Also new: `degradation_curves.race`
+
+The same `phi` you already use for the undercut, pre-sampled as `[{ age, delta_s }, …]` from 0
+to 50 laps, so the tyre-age gauge and the curve are visibly the same object. If you're already
+showing a tyre-age number somewhere in the scrubber, this is the curve to put behind it with a
+dot on it.
+
+⚠️ **The tail is flat on purpose.** Every point from age 22 onwards is exactly `0.755031`, and it
+must stay flat. That's the saturation clamp: the fitted quadratic would bend *downwards* past its
+peak, which would claim tyres get faster as they wear — the exact error this whole chart exists
+to point at. If your chart library smooths the corner into a decline, turn the smoothing off.
+
+### What not to do with the practice curves
+
+**Draw them, don't compute with them.** The deconfounded practice curve is defensible in sample
+and does not transfer to a race — calibration slope +0.006 against the real pit-stop step, which
+is precisely why the undercut calculator is built on race stops instead. So nothing on the page
+should read a tyre age off `degradation_curves.practice` and turn it into seconds gained. The
+undercut code in §3 is unchanged and stays exactly as it is.
+
+**And nothing here changed underneath you.** `degradation_curves` is a new key. Every field you
+were already using is spelled the same and means the same thing.

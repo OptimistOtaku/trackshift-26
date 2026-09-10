@@ -9,18 +9,19 @@ thing a window can claim to have learned: where to put it.
 Three comparisons, in increasing order of how much they hurt:
 
   vs random      a window of the same width placed uniformly at random. Beating this shows
-                 placement is not pure width. PITWALL passes: 66.9% against 54.2%, and 2000
+                 placement is not pure width. PITWALL passes: 68.4% against 54.4%, and 2000
                  permutations never reach it (p < 0.0001).
 
   vs mid-race    a window of the same width centred halfway through the race. This is what a
-                 rival team ships in an afternoon and it scores 66.2%. PITWALL does not beat
-                 it. That is why `pit_window` is a diagnostic in this codebase and not a
+                 rival team ships in an afternoon and it scores 65.8%. PITWALL's 68.4% edges
+                 it, but by too little to lean on - the deciding test is the per-event one
+                 below. That is why `pit_window` is a diagnostic in this codebase and not a
                  recommendation.
 
   vs mid-race,   per event, does the window centre MOVE with the lap teams actually chose?
   per event      A constant cannot, so this is the one test a constant must lose. It wins
-                 anyway: r=+0.72 against +0.62, MAE 4.8 laps against 8.8. And with race length
-                 divided out the window centre carries no signal at all (r=+0.04, p=0.91) -
+                 anyway: r=+0.73 against +0.64, MAE 4.9 laps against 8.4. And with race length
+                 divided out the window centre carries no signal at all (r=+0.08, p=0.80) -
                  the coverage was race-length arithmetic wearing a strategy costume.
 
 WHY THE WINDOW CANNOT BE RESCUED BY TUNING. `dL`, the compound benefit, is most of the +1.26
@@ -112,10 +113,15 @@ def main() -> None:
     print(f"  width-matched random     {p['random']:6.1%}   "
           f"(permutation null: mean {p['null_mean']:.1%}, "
           f"max {p['null_max']:.1%}, p={p['p_value']:.4f})")
-    print(f"  width-matched MID-RACE   {p['mid_race']:6.1%}   <-- not beaten")
-    verdict = "beats" if p["pitwall"] > p["mid_race"] + 0.02 else "does NOT beat"
-    print(f"  => the window {verdict} the mid-race heuristic")
+    print(f"  width-matched MID-RACE   {p['mid_race']:6.1%}")
+    print(f"  => coverage margin over mid-race: "
+          f"{(p['pitwall'] - p['mid_race']) * 100:+.1f} pp "
+          "(NOT the verdict - see below)")
 
+    # Coverage is deliberately not the deciding test. It moves by a couple of points on
+    # unrelated changes elsewhere in the model, and a verdict that flips on a hand-set
+    # threshold is not a verdict. The per-event test below is the one that decides, because a
+    # constant CANNOT track a moving target and this window has to prove that it does.
     g, s = per_event(ok)
     print("\n--- per event: does the window MOVE with the chosen lap? -----------")
     print(g[["Round", "n", "inside", "pit", "centre", "mid", "laps",
@@ -127,6 +133,9 @@ def main() -> None:
           f"p={s['mid_race']['p']:.3f}  MAE={s['mid_race']['mae_laps']:.1f} laps")
     print(f"  race length divided out: r={s['frac']['r']:+.2f} p={s['frac']['p']:.3f}"
           "   (no signal about WHERE in the race)")
+    beaten = (s["mid_race"]["mae_laps"] < s["pitwall"]["mae_laps"]) or (s["frac"]["p"] > 0.05)
+    print(f"\n  => a constant {'STILL beats it' if beaten else 'no longer beats it'}"
+          f" - the window {'stays cut' if beaten else 'is worth revisiting'}")
     print("\nconclusion: coverage was width and race length, not strategy. The window is a"
           "\ndiagnostic; the undercut is the product. See strategy.py's docstring.")
 

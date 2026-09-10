@@ -4,20 +4,20 @@
     "tt",
     "traf"
   ],
-  "intercept": 1.61736,
-  "tt_mean": 40.9572,
-  "tt_coef": 0.040942,
-  "traf_coef": 0.502208,
+  "intercept": 1.628518,
+  "tt_mean": 41.394659,
+  "tt_coef": 0.039178,
+  "traf_coef": 0.504294,
   "pairs": {
     "HARD>HARD": 0.0,
-    "HARD>MEDIUM": 0.219995,
-    "HARD>SOFT": -0.113154,
-    "MEDIUM>HARD": -0.361964,
-    "MEDIUM>MEDIUM": -1.042951,
-    "MEDIUM>SOFT": -0.932082,
-    "SOFT>HARD": -0.302555,
-    "SOFT>MEDIUM": -0.974094,
-    "SOFT>SOFT": -0.481424
+    "HARD>MEDIUM": 0.213532,
+    "HARD>SOFT": -0.1156,
+    "MEDIUM>HARD": -0.376029,
+    "MEDIUM>MEDIUM": -1.028879,
+    "MEDIUM>SOFT": -0.951915,
+    "SOFT>HARD": -0.322377,
+    "SOFT>MEDIUM": -0.995683,
+    "SOFT>SOFT": -0.49706
   },
   "reference_pair": "HARD>HARD",
   "degradation": {
@@ -28,5 +28,903 @@
     "note": "phi(a) = b1*a + b2*a^2, HELD FLAT past peak_age. Never let it decline - a declining phi claims tyres get faster as they wear, which is the sign error this project exists to point at."
   },
   "fresh_age": 3.0,
-  "n_obs": 288
+  "n_obs": 288,
+  "degradation_curves": {
+    "note": "Practice degradation fitted two ways on the same laps. naive is lap time on tyre age with a run intercept and nothing else; deconfounded subtracts a fuel sensitivity identified on race laps and adds measured traffic and rubber. Within a practice run fuel burn is collinear with tyre age, so the naive age slope absorbs the fuel effect and reports that tyres get FASTER as they wear. Draw both on one axis - that is the sign flip.",
+    "slope_ref_age": 10.0,
+    "lambda_fuel_s_per_kg": 0.029425,
+    "lambda_se_s_per_kg": 0.00394,
+    "lambda_events": 12,
+    "lambda_note": "Identified on race laps, never on the practice laps it is then applied to. Stints start at different points in a race, so the same tyre age is seen at many fuel loads and fuel is separable from age. Literature puts the fuel effect at 0.030-0.035 s/kg.",
+    "practice": {
+      "n_laps": 2991,
+      "n_runs": 469,
+      "naive_spec": "no fuel correction, no traffic term, no track evolution",
+      "deconfounded_spec": "fuel corrected with lambda, traffic measured, rubber measured",
+      "anchor_note": "delta_s is seconds per lap slower than a tyre of age anchor_age, on the same compound. Practice identifies the SHAPE of a degradation curve and not its level - each run has its own intercept and each run is one compound - so both curves are pinned to zero at anchor_age and only the shape is claimed.",
+      "compounds": {
+        "SOFT": {
+          "age_lo": 2.0,
+          "age_hi": 22.0,
+          "anchor_age": 2.0,
+          "naive": {
+            "b1": 0.090487,
+            "b2": -0.001937,
+            "slope_s_per_lap": 0.051751,
+            "total_s_over_support": 0.880077,
+            "curve": [
+              {
+                "age": 2,
+                "delta_s": 0.0
+              },
+              {
+                "age": 3,
+                "delta_s": 0.080803
+              },
+              {
+                "age": 4,
+                "delta_s": 0.157733
+              },
+              {
+                "age": 5,
+                "delta_s": 0.230789
+              },
+              {
+                "age": 6,
+                "delta_s": 0.299971
+              },
+              {
+                "age": 7,
+                "delta_s": 0.36528
+              },
+              {
+                "age": 8,
+                "delta_s": 0.426715
+              },
+              {
+                "age": 9,
+                "delta_s": 0.484277
+              },
+              {
+                "age": 10,
+                "delta_s": 0.537965
+              },
+              {
+                "age": 11,
+                "delta_s": 0.587779
+              },
+              {
+                "age": 12,
+                "delta_s": 0.63372
+              },
+              {
+                "age": 13,
+                "delta_s": 0.675787
+              },
+              {
+                "age": 14,
+                "delta_s": 0.71398
+              },
+              {
+                "age": 15,
+                "delta_s": 0.7483
+              },
+              {
+                "age": 16,
+                "delta_s": 0.778746
+              },
+              {
+                "age": 17,
+                "delta_s": 0.805318
+              },
+              {
+                "age": 18,
+                "delta_s": 0.828017
+              },
+              {
+                "age": 19,
+                "delta_s": 0.846843
+              },
+              {
+                "age": 20,
+                "delta_s": 0.861794
+              },
+              {
+                "age": 21,
+                "delta_s": 0.872872
+              },
+              {
+                "age": 22,
+                "delta_s": 0.880077
+              }
+            ]
+          },
+          "deconfounded": {
+            "b1": 0.145937,
+            "b2": -0.001819,
+            "slope_s_per_lap": 0.10956,
+            "total_s_over_support": 2.045698,
+            "curve": [
+              {
+                "age": 2,
+                "delta_s": 0.0
+              },
+              {
+                "age": 3,
+                "delta_s": 0.136843
+              },
+              {
+                "age": 4,
+                "delta_s": 0.270049
+              },
+              {
+                "age": 5,
+                "delta_s": 0.399616
+              },
+              {
+                "age": 6,
+                "delta_s": 0.525546
+              },
+              {
+                "age": 7,
+                "delta_s": 0.647839
+              },
+              {
+                "age": 8,
+                "delta_s": 0.766493
+              },
+              {
+                "age": 9,
+                "delta_s": 0.88151
+              },
+              {
+                "age": 10,
+                "delta_s": 0.992889
+              },
+              {
+                "age": 11,
+                "delta_s": 1.100631
+              },
+              {
+                "age": 12,
+                "delta_s": 1.204734
+              },
+              {
+                "age": 13,
+                "delta_s": 1.3052
+              },
+              {
+                "age": 14,
+                "delta_s": 1.402029
+              },
+              {
+                "age": 15,
+                "delta_s": 1.495219
+              },
+              {
+                "age": 16,
+                "delta_s": 1.584772
+              },
+              {
+                "age": 17,
+                "delta_s": 1.670688
+              },
+              {
+                "age": 18,
+                "delta_s": 1.752965
+              },
+              {
+                "age": 19,
+                "delta_s": 1.831605
+              },
+              {
+                "age": 20,
+                "delta_s": 1.906607
+              },
+              {
+                "age": 21,
+                "delta_s": 1.977972
+              },
+              {
+                "age": 22,
+                "delta_s": 2.045698
+              }
+            ]
+          },
+          "sign_flip": false
+        },
+        "MEDIUM": {
+          "age_lo": 2.0,
+          "age_hi": 26.0,
+          "anchor_age": 2.0,
+          "naive": {
+            "b1": -0.33086,
+            "b2": 0.014249,
+            "slope_s_per_lap": -0.045881,
+            "total_s_over_support": 1.634669,
+            "curve": [
+              {
+                "age": 2,
+                "delta_s": 0.0
+              },
+              {
+                "age": 3,
+                "delta_s": -0.259615
+              },
+              {
+                "age": 4,
+                "delta_s": -0.490733
+              },
+              {
+                "age": 5,
+                "delta_s": -0.693352
+              },
+              {
+                "age": 6,
+                "delta_s": -0.867473
+              },
+              {
+                "age": 7,
+                "delta_s": -1.013097
+              },
+              {
+                "age": 8,
+                "delta_s": -1.130222
+              },
+              {
+                "age": 9,
+                "delta_s": -1.21885
+              },
+              {
+                "age": 10,
+                "delta_s": -1.27898
+              },
+              {
+                "age": 11,
+                "delta_s": -1.310611
+              },
+              {
+                "age": 12,
+                "delta_s": -1.313745
+              },
+              {
+                "age": 13,
+                "delta_s": -1.288381
+              },
+              {
+                "age": 14,
+                "delta_s": -1.234518
+              },
+              {
+                "age": 15,
+                "delta_s": -1.152158
+              },
+              {
+                "age": 16,
+                "delta_s": -1.0413
+              },
+              {
+                "age": 17,
+                "delta_s": -0.901944
+              },
+              {
+                "age": 18,
+                "delta_s": -0.73409
+              },
+              {
+                "age": 19,
+                "delta_s": -0.537738
+              },
+              {
+                "age": 20,
+                "delta_s": -0.312888
+              },
+              {
+                "age": 21,
+                "delta_s": -0.05954
+              },
+              {
+                "age": 22,
+                "delta_s": 0.222306
+              },
+              {
+                "age": 23,
+                "delta_s": 0.53265
+              },
+              {
+                "age": 24,
+                "delta_s": 0.871492
+              },
+              {
+                "age": 25,
+                "delta_s": 1.238831
+              },
+              {
+                "age": 26,
+                "delta_s": 1.634669
+              }
+            ]
+          },
+          "deconfounded": {
+            "b1": -0.120373,
+            "b2": 0.009711,
+            "slope_s_per_lap": 0.073837,
+            "total_s_over_support": 3.636515,
+            "curve": [
+              {
+                "age": 2,
+                "delta_s": 0.0
+              },
+              {
+                "age": 3,
+                "delta_s": -0.071821
+              },
+              {
+                "age": 4,
+                "delta_s": -0.12422
+              },
+              {
+                "age": 5,
+                "delta_s": -0.157199
+              },
+              {
+                "age": 6,
+                "delta_s": -0.170757
+              },
+              {
+                "age": 7,
+                "delta_s": -0.164893
+              },
+              {
+                "age": 8,
+                "delta_s": -0.139609
+              },
+              {
+                "age": 9,
+                "delta_s": -0.094903
+              },
+              {
+                "age": 10,
+                "delta_s": -0.030776
+              },
+              {
+                "age": 11,
+                "delta_s": 0.052772
+              },
+              {
+                "age": 12,
+                "delta_s": 0.15574
+              },
+              {
+                "age": 13,
+                "delta_s": 0.27813
+              },
+              {
+                "age": 14,
+                "delta_s": 0.419941
+              },
+              {
+                "age": 15,
+                "delta_s": 0.581173
+              },
+              {
+                "age": 16,
+                "delta_s": 0.761826
+              },
+              {
+                "age": 17,
+                "delta_s": 0.9619
+              },
+              {
+                "age": 18,
+                "delta_s": 1.181396
+              },
+              {
+                "age": 19,
+                "delta_s": 1.420312
+              },
+              {
+                "age": 20,
+                "delta_s": 1.678649
+              },
+              {
+                "age": 21,
+                "delta_s": 1.956408
+              },
+              {
+                "age": 22,
+                "delta_s": 2.253587
+              },
+              {
+                "age": 23,
+                "delta_s": 2.570188
+              },
+              {
+                "age": 24,
+                "delta_s": 2.906209
+              },
+              {
+                "age": 25,
+                "delta_s": 3.261652
+              },
+              {
+                "age": 26,
+                "delta_s": 3.636515
+              }
+            ]
+          },
+          "sign_flip": true
+        },
+        "HARD": {
+          "age_lo": 2.0,
+          "age_hi": 30.0,
+          "anchor_age": 2.0,
+          "naive": {
+            "b1": -0.380873,
+            "b2": 0.011368,
+            "slope_s_per_lap": -0.153516,
+            "total_s_over_support": -0.478853,
+            "curve": [
+              {
+                "age": 2,
+                "delta_s": 0.0
+              },
+              {
+                "age": 3,
+                "delta_s": -0.324034
+              },
+              {
+                "age": 4,
+                "delta_s": -0.625332
+              },
+              {
+                "age": 5,
+                "delta_s": -0.903895
+              },
+              {
+                "age": 6,
+                "delta_s": -1.159722
+              },
+              {
+                "age": 7,
+                "delta_s": -1.392813
+              },
+              {
+                "age": 8,
+                "delta_s": -1.603168
+              },
+              {
+                "age": 9,
+                "delta_s": -1.790788
+              },
+              {
+                "age": 10,
+                "delta_s": -1.955672
+              },
+              {
+                "age": 11,
+                "delta_s": -2.09782
+              },
+              {
+                "age": 12,
+                "delta_s": -2.217233
+              },
+              {
+                "age": 13,
+                "delta_s": -2.31391
+              },
+              {
+                "age": 14,
+                "delta_s": -2.387851
+              },
+              {
+                "age": 15,
+                "delta_s": -2.439056
+              },
+              {
+                "age": 16,
+                "delta_s": -2.467526
+              },
+              {
+                "age": 17,
+                "delta_s": -2.47326
+              },
+              {
+                "age": 18,
+                "delta_s": -2.456258
+              },
+              {
+                "age": 19,
+                "delta_s": -2.416521
+              },
+              {
+                "age": 20,
+                "delta_s": -2.354048
+              },
+              {
+                "age": 21,
+                "delta_s": -2.268839
+              },
+              {
+                "age": 22,
+                "delta_s": -2.160894
+              },
+              {
+                "age": 23,
+                "delta_s": -2.030214
+              },
+              {
+                "age": 24,
+                "delta_s": -1.876798
+              },
+              {
+                "age": 25,
+                "delta_s": -1.700647
+              },
+              {
+                "age": 26,
+                "delta_s": -1.501759
+              },
+              {
+                "age": 27,
+                "delta_s": -1.280136
+              },
+              {
+                "age": 28,
+                "delta_s": -1.035777
+              },
+              {
+                "age": 29,
+                "delta_s": -0.768683
+              },
+              {
+                "age": 30,
+                "delta_s": -0.478853
+              }
+            ]
+          },
+          "deconfounded": {
+            "b1": 0.005766,
+            "b2": 0.002868,
+            "slope_s_per_lap": 0.063123,
+            "total_s_over_support": 2.731018,
+            "curve": [
+              {
+                "age": 2,
+                "delta_s": 0.0
+              },
+              {
+                "age": 3,
+                "delta_s": 0.020105
+              },
+              {
+                "age": 4,
+                "delta_s": 0.045946
+              },
+              {
+                "age": 5,
+                "delta_s": 0.077523
+              },
+              {
+                "age": 6,
+                "delta_s": 0.114835
+              },
+              {
+                "age": 7,
+                "delta_s": 0.157883
+              },
+              {
+                "age": 8,
+                "delta_s": 0.206666
+              },
+              {
+                "age": 9,
+                "delta_s": 0.261186
+              },
+              {
+                "age": 10,
+                "delta_s": 0.32144
+              },
+              {
+                "age": 11,
+                "delta_s": 0.387431
+              },
+              {
+                "age": 12,
+                "delta_s": 0.459157
+              },
+              {
+                "age": 13,
+                "delta_s": 0.536618
+              },
+              {
+                "age": 14,
+                "delta_s": 0.619816
+              },
+              {
+                "age": 15,
+                "delta_s": 0.708749
+              },
+              {
+                "age": 16,
+                "delta_s": 0.803417
+              },
+              {
+                "age": 17,
+                "delta_s": 0.903821
+              },
+              {
+                "age": 18,
+                "delta_s": 1.009961
+              },
+              {
+                "age": 19,
+                "delta_s": 1.121837
+              },
+              {
+                "age": 20,
+                "delta_s": 1.239448
+              },
+              {
+                "age": 21,
+                "delta_s": 1.362795
+              },
+              {
+                "age": 22,
+                "delta_s": 1.491877
+              },
+              {
+                "age": 23,
+                "delta_s": 1.626695
+              },
+              {
+                "age": 24,
+                "delta_s": 1.767248
+              },
+              {
+                "age": 25,
+                "delta_s": 1.913538
+              },
+              {
+                "age": 26,
+                "delta_s": 2.065563
+              },
+              {
+                "age": 27,
+                "delta_s": 2.223323
+              },
+              {
+                "age": 28,
+                "delta_s": 2.386819
+              },
+              {
+                "age": 29,
+                "delta_s": 2.556051
+              },
+              {
+                "age": 30,
+                "delta_s": 2.731018
+              }
+            ]
+          },
+          "sign_flip": true
+        }
+      }
+    },
+    "race": {
+      "b1": 0.070371,
+      "b2": -0.00164,
+      "peak_age": 21.458624,
+      "max_age_seen": 50.0,
+      "n_stops": 288,
+      "curve": [
+        {
+          "age": 0,
+          "delta_s": 0.0
+        },
+        {
+          "age": 1,
+          "delta_s": 0.068731
+        },
+        {
+          "age": 2,
+          "delta_s": 0.134183
+        },
+        {
+          "age": 3,
+          "delta_s": 0.196355
+        },
+        {
+          "age": 4,
+          "delta_s": 0.255249
+        },
+        {
+          "age": 5,
+          "delta_s": 0.310862
+        },
+        {
+          "age": 6,
+          "delta_s": 0.363197
+        },
+        {
+          "age": 7,
+          "delta_s": 0.412252
+        },
+        {
+          "age": 8,
+          "delta_s": 0.458027
+        },
+        {
+          "age": 9,
+          "delta_s": 0.500523
+        },
+        {
+          "age": 10,
+          "delta_s": 0.53974
+        },
+        {
+          "age": 11,
+          "delta_s": 0.575678
+        },
+        {
+          "age": 12,
+          "delta_s": 0.608336
+        },
+        {
+          "age": 13,
+          "delta_s": 0.637714
+        },
+        {
+          "age": 14,
+          "delta_s": 0.663814
+        },
+        {
+          "age": 15,
+          "delta_s": 0.686634
+        },
+        {
+          "age": 16,
+          "delta_s": 0.706174
+        },
+        {
+          "age": 17,
+          "delta_s": 0.722435
+        },
+        {
+          "age": 18,
+          "delta_s": 0.735417
+        },
+        {
+          "age": 19,
+          "delta_s": 0.74512
+        },
+        {
+          "age": 20,
+          "delta_s": 0.751543
+        },
+        {
+          "age": 21,
+          "delta_s": 0.754686
+        },
+        {
+          "age": 22,
+          "delta_s": 0.755031
+        },
+        {
+          "age": 23,
+          "delta_s": 0.755031
+        },
+        {
+          "age": 24,
+          "delta_s": 0.755031
+        },
+        {
+          "age": 25,
+          "delta_s": 0.755031
+        },
+        {
+          "age": 26,
+          "delta_s": 0.755031
+        },
+        {
+          "age": 27,
+          "delta_s": 0.755031
+        },
+        {
+          "age": 28,
+          "delta_s": 0.755031
+        },
+        {
+          "age": 29,
+          "delta_s": 0.755031
+        },
+        {
+          "age": 30,
+          "delta_s": 0.755031
+        },
+        {
+          "age": 31,
+          "delta_s": 0.755031
+        },
+        {
+          "age": 32,
+          "delta_s": 0.755031
+        },
+        {
+          "age": 33,
+          "delta_s": 0.755031
+        },
+        {
+          "age": 34,
+          "delta_s": 0.755031
+        },
+        {
+          "age": 35,
+          "delta_s": 0.755031
+        },
+        {
+          "age": 36,
+          "delta_s": 0.755031
+        },
+        {
+          "age": 37,
+          "delta_s": 0.755031
+        },
+        {
+          "age": 38,
+          "delta_s": 0.755031
+        },
+        {
+          "age": 39,
+          "delta_s": 0.755031
+        },
+        {
+          "age": 40,
+          "delta_s": 0.755031
+        },
+        {
+          "age": 41,
+          "delta_s": 0.755031
+        },
+        {
+          "age": 42,
+          "delta_s": 0.755031
+        },
+        {
+          "age": 43,
+          "delta_s": 0.755031
+        },
+        {
+          "age": 44,
+          "delta_s": 0.755031
+        },
+        {
+          "age": 45,
+          "delta_s": 0.755031
+        },
+        {
+          "age": 46,
+          "delta_s": 0.755031
+        },
+        {
+          "age": 47,
+          "delta_s": 0.755031
+        },
+        {
+          "age": 48,
+          "delta_s": 0.755031
+        },
+        {
+          "age": 49,
+          "delta_s": 0.755031
+        },
+        {
+          "age": 50,
+          "delta_s": 0.755031
+        }
+      ],
+      "note": "The same phi as the `degradation` block above, sampled so the gauge and the curve are one object. Measured from race pit stops, not practice. HELD FLAT past peak_age: the fitted quadratic has b2 < 0 and would bend downwards past its peak, which would claim tyres get faster as they wear - the sign error this project exists to point at. The flat tail in this array is that clamp and is not a plotting mistake."
+    },
+    "not_a_predictor": "These practice curves are the diagnostic, not the product. The deconfounded curve is defensible in sample and does NOT transfer to a race: calibration slope +0.006 against the measured pit-stop step. Draw them to show the sign flip; do not compute an undercut or a stop value from them. Use `degradation` / `race` for that."
+  }
 }

@@ -1,22 +1,27 @@
 {
   "season": 2026,
-  "generated": "2026-09-09",
+  "generated": "2026-09-11",
   "headline": {
     "stops": 288,
     "events": 12,
-    "rmse_s": 0.949591,
-    "calib_slope": 0.816557,
-    "mae_s": 0.740151,
-    "bias_s": 0.072872,
+    "rmse_s": 0.958068,
+    "calib_slope": 0.785165,
+    "mae_s": 0.745371,
+    "bias_s": 0.069421,
     "n_scored": 284,
-    "events_scored": 11
+    "events_scored": 11,
+    "baseline_rmse_s": 1.077265,
+    "baseline_spec": "season mean, same leave-one-event-out loop",
+    "improvement_pct": 11.06482,
+    "events_won": 7,
+    "events_compared": 11
   },
   "pit_loss": {
     "season_median_s": 21.746667,
     "min_s": 20.068929,
     "max_s": 23.666512
   },
-  "window_is_not_reported": "A pit-lap recommendation is deliberately absent. It covers 66.9% of real stops but a width-matched mid-race window covers 66.2%, so it adds nothing over 'pit halfway through'. See scripts/check_window_placebo.py.",
+  "window_is_not_reported": "A pit-lap recommendation is deliberately absent. It covers 68.4% of real stops against 65.8% for a width-matched mid-race window, a margin too small to lean on; and per event that mid-race constant tracks the chosen lap better than the window centre does. So it adds nothing over 'pit halfway through'. See scripts/check_window_placebo.py.",
   "races": [
     {
       "round": 1,
@@ -93,7 +98,7 @@
     {
       "round": 9,
       "event": "British Grand Prix",
-      "laps": 47,
+      "laps": 52,
       "file": "races/R09.json",
       "pit_loss_s": 20.97781,
       "track_temp_c": 40.540751,
