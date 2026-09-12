@@ -4,7 +4,7 @@
     {
       "name": "demo",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "8000"],
+      "runtimeArgs": ["scripts/serve_demo.py", "--port", "8000"],
       "port": 8000
     }
   ]
