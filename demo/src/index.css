@@ -1,0 +1,241 @@
+@import "tailwindcss";
+
+/* ===================================================================== *
+ *  PITWALL design tokens — TrackShift 2026.
+ *
+ *  Palette is red / black / white / yellow, and the compound colours fall
+ *  out of it for free: Pirelli marks SOFT red, MEDIUM yellow, HARD white.
+ *  So the brand palette and the data encoding are the same four values and
+ *  nothing has to be invented.
+ *
+ *  Hue discipline, because yellow and red each carry two jobs:
+ *    yellow  bare text / strokes = a number WE measured, or a live control
+ *    yellow  filled pill         = the MEDIUM compound
+ *    red     bare text / strokes = a wrong-signed number, or the naive fit
+ *    red     filled pill         = the SOFT compound
+ *    red     1px full border     = a limitation. This is the ONLY thing on
+ *                                  the page that gets a full border.
+ *  Different shapes, same hue. Timing screens do exactly this.
+ * ===================================================================== */
+
+@theme {
+  --color-track: #000000; /* the field. True black, like a broadcast timing screen. */
+  --color-panel: #121212; /* a data surface */
+  --color-raise: #1a1a1a; /* a control well */
+  --color-hair: #262626; /* rules between rows */
+  --color-flag: #ffd400; /* measured by us / live / MEDIUM */
+  --color-tifosi: #e10600; /* wrong sign / naive fit / SOFT / limitation */
+  --color-dim: #8a8a8a; /* secondary prose */
+  --color-faint: #565656; /* tick labels, provenance */
+
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, sans-serif;
+  --font-mono:
+    ui-monospace, "SF Mono", SFMono-Regular, "Cascadia Mono", "Roboto Mono", Menlo,
+    Consolas, monospace;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+    background: var(--color-track);
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-track);
+    color: #ffffff;
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Numerals must not reflow while a slider is dragged. Every digit is one width. */
+  .num,
+  table,
+  input,
+  select,
+  output {
+    font-variant-numeric: tabular-nums;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-flag);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--color-flag);
+    color: #000;
+  }
+}
+
+/* --------------------------------------------------------------------- *
+ *  Controls. Vendor pseudo-elements cannot be expressed as utilities, so the
+ *  range and select styling lives here and nowhere else.
+ *
+ *  This MUST stay inside @layer base. Unlayered CSS outranks every @layer in
+ *  the cascade, so an unlayered `select { width: 100% }` would beat `w-auto`
+ *  and no utility could ever narrow a select again.
+ * --------------------------------------------------------------------- */
+
+@layer base {
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    width: 100%;
+    height: 20px;
+    background: transparent;
+    cursor: ew-resize;
+  }
+
+  /* A 4px rectangular thumb reads as a timing marker, not a generic pill. */
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 2px;
+    background: #333333;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 4px;
+    height: 18px;
+    margin-top: -8px;
+    border: 0;
+    border-radius: 0;
+    background: var(--color-flag);
+  }
+  input[type="range"]::-moz-range-track {
+    height: 2px;
+    background: #333333;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 4px;
+    height: 18px;
+    border: 0;
+    border-radius: 0;
+    background: var(--color-flag);
+  }
+
+  select {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--color-hair);
+    border-radius: 0;
+    background: #0a0a0a;
+    color: #ffffff;
+    font: inherit;
+    cursor: pointer;
+  }
+  select:hover {
+    border-color: #3a3a3a;
+  }
+}
+
+@layer components {
+  .replay-console {
+    position: relative;
+    overflow: hidden;
+    border-top: 1px solid var(--color-hair);
+  }
+
+  .replay-console::before {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: min(34%, 260px);
+    height: 1px;
+    content: "";
+    background: var(--color-flag);
+  }
+
+  .replay-play {
+    transition: color 160ms cubic-bezier(0.23, 1, 0.32, 1), background-color 160ms cubic-bezier(0.23, 1, 0.32, 1), transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  .replay-play:active {
+    transform: scale(0.97);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .replay-play:hover:not(:disabled) {
+      background: var(--color-flag);
+      color: var(--color-track);
+    }
+  }
+
+  /* The ledger rule. The undercut is a subtraction and it is set as one. */
+  .ledger-rule {
+    height: 0;
+    border-top: 1px solid #ffffff;
+  }
+
+  /* A human signal inside a timing system: the engineer remains compact and
+     all colour continues to come from the existing radio/compound palette. */
+  .engineer-avatar {
+    width: 72px;
+    height: 72px;
+    overflow: hidden;
+    border: 1px solid var(--color-hair);
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 24%, #292929 0, #111111 56%, #000000 100%);
+  }
+
+  .engineer-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 51% 22%;
+    transform: scale(1.56);
+  }
+
+  .engineer-avatar--speaking {
+    border-color: var(--color-flag);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-flag) 14%, transparent);
+  }
+
+  .engineer-presence {
+    position: absolute;
+    right: 1px;
+    bottom: 2px;
+    width: 10px;
+    height: 10px;
+    border: 2px solid var(--color-panel);
+    border-radius: 50%;
+    background: var(--color-faint);
+  }
+
+  .engineer-presence--live {
+    background: var(--color-flag);
+  }
+
+  .radio-icon {
+    display: inline-grid;
+    width: 18px;
+    height: 18px;
+    place-items: center;
+    border: 1px solid var(--color-hair);
+    color: var(--color-flag);
+    font-size: 8px;
+    line-height: 1;
+  }
+
+  .radio-icon--live {
+    border-color: var(--color-flag);
+    color: var(--color-track);
+    background: var(--color-flag);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
