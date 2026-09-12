@@ -14,3 +14,14 @@ __pycache__/
 venv/
 .ipynb_checkpoints/
 .DS_Store
+
+# Node / Vite — demo frontend
+node_modules/
+demo/node_modules/
+demo/dist/
+
+# Local secrets. MCP server keys and anything else that must never reach GitHub.
+# .mcp.json is committed, but it only references ${STITCH_API_KEY}; the value lives here.
+.env
+.env.local
+.env.*.local
