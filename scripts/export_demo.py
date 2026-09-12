@@ -282,8 +282,10 @@ def race_json(season: pd.DataFrame, stops: pd.DataFrame, model, rnd: int,
         d[c] = pd.to_numeric(d[c], errors="coerce")
 
     st = stops.loc[stops["Round"] == rnd].copy()
-    if not st.empty:
+    if not st.empty and model is not None:
         st["step_pred_s"] = model.predict(st)
+    else:
+        st["step_pred_s"] = np.nan
     sj = [{"driver": str(r["Driver"]), "pit_lap": int(r["PitLap"]), "pair": str(r["pair"]),
            "age_old": float(r["age_old"]), "step_obs_s": float(r["step_obs"]),
            "step_pred_s": float(r["step_pred_s"])} for _, r in st.iterrows()]
@@ -296,6 +298,7 @@ def race_json(season: pd.DataFrame, stops: pd.DataFrame, model, rnd: int,
         "last_clean_lap": observed,
         "pit_loss_s": float(pit_loss), "track_temp_c": float(race["TrackTemp"].mean()),
         "drivers": sorted(d["driver"].astype(str).unique().tolist()),
+        "step_prediction_basis": "leave-one-event-out; retrospective traffic covariates",
         "laps_data": d.to_dict(orient="records"),
         "stops": sj,
     }
@@ -363,7 +366,14 @@ def main() -> None:
         if rnd not in pit_loss:
             print(f"[R{rnd:02d}] skipped: no measured pit loss")
             continue
-        rj = race_json(season, stops, model, rnd, pit_loss[rnd])
+        # The scatter must show the same held-out predictions as its headline metric.
+        # Previously it accidentally plotted the full-season fit, an in-sample picture
+        # under an out-of-sample heading. Mirror loo_evaluate's eligibility gate too.
+        train = stops.loc[stops["Round"] != rnd]
+        test = stops.loc[stops["Round"] == rnd]
+        held_out = (S.fit_level_model(train)
+                    if len(test) >= 5 and train["Round"].nunique() >= 3 else None)
+        rj = race_json(season, stops, held_out, rnd, pit_loss[rnd])
         name = f"R{rnd:02d}.json"
         os.makedirs(os.path.join(OUT, "races"), exist_ok=True)
         with open(os.path.join(OUT, "races", name), "w", encoding="utf-8") as f:

@@ -2,19 +2,15 @@
 <!--
   PITWALL — fallback demo.  TrackShift 2026, Mohali.
 
-  THIS IS THE PARACHUTE, NOT THE PRODUCT.  Ruhani owns `demo/`; this exists so that
-  if her build is not finished, or breaks on the day, there is still something a judge
-  can click.  If `demo/` works, show that instead.
-
-  Deliberate constraints, do not "improve" these:
-    - ONE file.  No build step, no npm, no framework, no CDN.  Nothing can fail to
+  Reference integration for causal replay, uncertainty and grounded Race Engineer.
+  No build step, no npm, no framework, no CDN. Nothing can fail to
       compile on stage and nothing needs the network.  The failure drill in
       docs/JUDGE_QA.md is "turn the wifi off and reload" - that has to pass.
     - Charts are hand-rolled inline SVG for the same reason.
     - Every number is read from artifacts/demo/*.json at runtime.  Nothing is
       hardcoded, so a re-export cannot leave a stale figure on screen.
 
-  Run it:   python -m http.server 8000    (from the repo root)
+  Run it:   python scripts/serve_demo.py    (from the repo root)
             http://localhost:8000/demo_fallback/
   NOT as file:// - fetch is blocked by CORS and you lose twenty minutes to it.
 
@@ -114,6 +110,16 @@
   .f-sc{background:#3a2f16;color:var(--medium)}.f-red{background:#3a1a1e;color:var(--red)}
   footer{color:var(--faint);font-size:12px;padding:22px 26px;border-top:1px solid var(--line);
          margin-top:34px}
+  .eyebrow{font:11px var(--mono);letter-spacing:.15em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+  .intel-layout{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:26px;margin:24px 0}
+  .intel-heading{display:flex;justify-content:space-between;align-items:center;gap:20px}
+  .intel-heading select{width:100px}.intel-heading h3{margin:0 0 12px;font-size:25px}
+  #i-chart{min-height:250px}#i-engineer{font-size:17px;line-height:1.7;color:var(--ink)}
+  .engineer{border-top:2px solid var(--accent)}#r-play{background:var(--accent);border:0;border-radius:4px;padding:9px 17px;color:var(--bg);font-weight:700;cursor:pointer}
+  #u-margin{font-size:44px}.card{min-width:0}.scrub{flex-wrap:wrap}
+  #i-validation{margin-bottom:36px}#i-validation table{margin:15px 0}
+  @media(max-width:1000px){.intel-layout{grid-template-columns:1fr}.grid[style]{grid-template-columns:1fr!important}}
+  @media(max-width:600px){main{padding:14px}header{padding:15px}nav{padding:0 8px}.card{padding:12px}td,th{padding:5px 4px;font-size:11px}.scrub select{max-width:100%}.head-nums{margin-left:0}.hero{font-size:35px}}
 </style>
 </head>
 <body>
@@ -125,9 +131,9 @@
 </header>
 
 <nav id="nav">
-  <button data-t="undercut" aria-selected="true">Undercut</button>
+  <button data-t="undercut" aria-selected="false">Undercut</button>
   <button data-t="signflip" aria-selected="false">The sign flip</button>
-  <button data-t="replay" aria-selected="false">Race replay</button>
+  <button data-t="replay" aria-selected="true">Race replay</button>
   <button data-t="validation" aria-selected="false">Validation</button>
 </nav>
 
@@ -135,46 +141,42 @@
   <div id="boot" class="err" hidden></div>
 
   <!-- ============================ 1. UNDERCUT (hero) ======================= -->
-  <section id="s-undercut">
-    <h2>What a fresh tyre buys you, right now</h2>
-    <p class="sub">The question a race engineer asks with the gap on the screen: I pit now,
-      they respond a lap or two later &mdash; does one lap of clear air cover the gap?
-      Both cars serve the same pit lane, so the ~22&nbsp;s pit loss cancels out of the
-      comparison. That is <em>why</em> undercuts work.</p>
+  <section id="s-undercut" hidden>
+    <h2>Price the undercut. See the uncertainty.</h2>
+    <p class="sub">A short-horizon scenario tied to the selected driver and lap in Race replay.
+      Both cars pay the pit-lane transit cost; unequal service time, warm-up and traffic still matter.</p>
+    <p id="u-context" class="note"></p>
     <div class="grid">
       <div class="card">
-        <label for="u-race">Race</label>
-        <select id="u-race"></select>
-        <label for="u-pair">Compound change <span class="val" id="u-pair-v"></span></label>
-        <select id="u-pair"></select>
-        <label for="u-mine">My tyre age, about to come off <span class="val" id="u-mine-v"></span></label>
-        <input type="range" id="u-mine" min="1" max="50" value="24">
-        <label for="u-theirs">Rival tyre age <span class="val" id="u-theirs-v"></span></label>
-        <input type="range" id="u-theirs" min="1" max="50" value="24">
-        <label for="u-gap">Gap to rival, behind <span class="val" id="u-gap-v"></span></label>
-        <input type="range" id="u-gap" min="0" max="5" step="0.1" value="1.5">
-        <p class="note" id="u-ctx"></p>
+        <label for="u-compound">Fit compound</label><select id="u-compound">
+          <option>HARD</option><option>MEDIUM</option><option>SOFT</option></select>
+        <label for="u-gap">Gap behind rival <span class="val" id="u-gap-v"></span></label>
+        <input type="range" id="u-gap" min="0" max="8" step="0.1" value="1.5">
+        <label for="u-response">Rival responds after <span class="val" id="u-response-v"></span></label>
+        <input type="range" id="u-response" min="1" max="5" step="1" value="3">
+        <label for="u-warmup">Total warm-up loss <span class="val" id="u-warmup-v"></span></label>
+        <input type="range" id="u-warmup" min="0" max="4" step="0.1" value="0.7">
+        <label for="u-traffic">Total rejoin traffic loss <span class="val" id="u-traffic-v"></span></label>
+        <input type="range" id="u-traffic" min="0" max="5" step="0.1" value="0">
+        <label for="u-service">Our extra pit service time <span class="val" id="u-service-v"></span></label>
+        <input type="range" id="u-service" min="-2" max="4" step="0.1" value="0">
+        <label for="u-pace">Our intrinsic pace advantage <span class="val" id="u-pace-v"></span></label>
+        <input type="range" id="u-pace" min="-1" max="1" step="0.05" value="0">
+        <label for="u-decay">Extra net degradation per lap <span class="val" id="u-decay-v"></span></label>
+        <input type="range" id="u-decay" min="-0.2" max="0.3" step="0.01" value="0">
+        <p class="note">These are editable scenario assumptions, not measured future outcomes.
+          Positive service time costs us; positive pace advantage helps us.</p>
       </div>
       <div>
-        <div class="card">
-          <div class="hero" id="u-rate">&mdash;</div>
-          <div class="hero-u">seconds per lap, from a fresh tyre</div>
-          <div class="sum" id="u-sum"></div>
-          <div class="cost" id="u-cost"></div>
-          <p class="note">The pit loss cancels &mdash; both cars serve the same pit lane, so it
-            drops out of the subtraction. What is left is pace.
-            <br><br><strong>This tool does not tell you that you will gain a place.</strong>
-            We backtested that claim against 137 real head-to-head duels and it failed: our
-            margin ranks the winner at AUC 0.836, and so does the gap alone with no model.
-            The rate is ours and it is validated. The gap is on every timing screen in the pit
-            lane. So we show the rate, we show the subtraction, and you decide.</p>
+        <div class="card"><div class="eyebrow">Margin after both stops</div>
+          <div class="hero" id="u-margin">—</div><p id="u-band"></p>
+          <div class="sum" id="u-breakdown"></div><p class="cost" id="u-limit"></p>
         </div>
-        <div class="card" style="margin-top:20px">
-          <table>
-            <thead><tr><th class="l">If they respond after</th><th>You gain</th>
-              <th>Gap becomes</th><th>Tyre deficit</th></tr></thead>
-            <tbody id="u-rows"></tbody>
-          </table>
+        <div class="card" style="margin-top:20px"><table>
+          <thead><tr><th>Response</th><th>Gain</th><th>Margin</th><th>Empirical range</th></tr></thead>
+          <tbody id="u-rows"></tbody></table>
+          <p class="note">The pace-step error is shared across the horizon. Its range grows with
+            the number of laps; it is not a calibrated probability of overtaking.</p>
         </div>
       </div>
     </div>
@@ -202,30 +204,44 @@
   </section>
 
   <!-- ============================ 3. REPLAY ================================ -->
-  <section id="s-replay" hidden>
-    <h2>Race replay</h2>
-    <p class="sub">Every lap FastF1 recorded &mdash; including safety-car, VSC, in- and
-      out-laps. Greyed rows were excluded from model fitting; they are not wrong, they are
-      just not clean pace. For each car, what a stop <em>on this lap</em> would buy.</p>
+  <section id="s-replay">
+    <div class="eyebrow">Historical race / live prediction boundary</div>
+    <h2>The next lap, before it happens.</h2>
+    <p class="sub">Advance the 2026 race one lap at a time. The estimator sees the completed
+      laps; the chart reveals whether its earlier predictions were right. Forecasts assume this
+      stint continues under green flags.</p>
+    <div class="stat" id="i-score"></div>
     <div class="scrub">
       <select id="r-race" style="width:auto"></select>
       <span class="lapno" id="r-lapno">lap &mdash;</span>
-      <input type="range" id="r-lap" min="1" max="71" value="1">
+      <input type="range" id="r-lap" min="1" max="71" value="25" aria-label="Replay lap">
+      <button id="r-play" type="button">Play</button>
       <span id="r-flag"></span>
+    </div>
+    <div class="intel-layout">
+      <div class="card"><div class="intel-heading"><div><div class="eyebrow">Adaptive pace forecast</div>
+        <h3 id="i-title">Select a driver</h3></div><select id="i-driver" aria-label="Forecast driver"></select></div>
+        <div id="i-chart"></div><p class="note" id="i-basis"></p>
+        <div class="lg"><span><i style="border-color:#e8e9ed"></i>observed</span>
+          <span><i style="border-color:#3fa7dc"></i>forecast</span>
+          <span><i style="border-color:#9bcced"></i>resolved one-lap predictions</span></div>
+      </div>
+      <div class="card engineer"><div class="eyebrow">Race Engineer</div>
+        <h3>What matters this lap.</h3><p id="i-engineer" aria-live="polite"></p>
+        <p class="note" id="i-engineer-source"></p><p class="note" id="i-trend"></p>
+      </div>
     </div>
     <div class="grid" style="grid-template-columns:1fr minmax(260px,330px)">
       <div class="card">
         <table>
           <thead><tr><th>Pos</th><th class="l">Driver</th><th class="l">Tyre</th><th>Age</th>
-            <th>Lap time</th><th>A stop now buys</th></tr></thead>
+            <th>Lap time</th><th>Next lap forecast</th></tr></thead>
           <tbody id="r-rows"></tbody>
         </table>
       </div>
       <div class="card">
-        <h3 style="margin:0 0 3px;font-size:15px">Stops so far</h3>
-        <p class="note" style="margin:0 0 11px">Only stops up to this lap. The file holds the
-          whole race, so anything lap-indexed has to filter the future out &mdash; showing a
-          judge a stop before it happened is the exact sin this project criticises.</p>
+        <h3 style="margin:0 0 3px;font-size:15px">Pit visits observed</h3>
+        <p class="note" style="margin:0 0 11px">Pit-entry flags observed by this lap. Future pace steps are not shown early.</p>
         <table><tbody id="r-stops"></tbody></table>
       </div>
     </div>
@@ -233,10 +249,12 @@
 
   <!-- ============================ 4. VALIDATION ============================ -->
   <section id="s-validation" hidden>
-    <h2>Measured against predicted, out of sample</h2>
+    <h2>Chronological validation</h2>
+    <div id="i-validation"></div>
+    <h3>Earlier pit-step research: leave-one-event-out</h3>
     <p class="sub">Every point is one real pit stop, scored by a model that never saw its
       event. Ground truth is the step in pace across the stop: tyre age resets, fuel does not,
-      so the step measures the tyre effect with fuel cancelled by construction. That is why we
+      so the step approximates the tyre and compound effect, with residual fuel and traffic differences. That is why we
       score against this and not against our own fit.</p>
     <div class="stat" id="v-stat"></div>
     <div class="grid" style="grid-template-columns:1fr 1fr">
@@ -281,39 +299,6 @@ async function race(rnd, kind='races'){
 }
 
 /* ===================================================================== *
- *  The model, client side.  Mirrors src/pitwall/stopvalue.py.
- * ===================================================================== */
-
-/* Tyre-age effect.  MUST saturate: the fitted quadratic has b2 < 0 and would bend
-   DOWNWARDS past its peak, which claims tyres get faster as they wear — the exact
-   sign error this whole project exists to point at.  Do not remove the clamp. */
-function phi(a){
-  const x = Math.min(Math.max(a, 0), DEG.peak_age);
-  return DEG.b1 * x + DEG.b2 * x * x;
-}
-
-/* Seconds per lap a fresh tyre buys, before any age arithmetic. */
-function step0(pair, trackTemp, dClose = 0){
-  return MODEL.intercept
-       + (MODEL.pairs[pair] ?? 0)
-       + MODEL.tt_coef   * (trackTemp - MODEL.tt_mean)
-       + MODEL.traf_coef * dClose;
-}
-
-/* THE HERO CALCULATION.  Verified against the Python to 4e-5 s:
-   Austria, MEDIUM>HARD, tt 51.0926, mine 24, theirs 24  →  +1.760057 s on lap one. */
-function undercut({pair, trackTemp, mine, theirs, gap, laps = 8}){
-  const dL = step0(pair, trackTemp) - phi(mine) + phi(MODEL.fresh_age);
-  const rows = [];
-  let gained = 0;
-  for(let k = 1; k <= laps; k++){
-    gained += dL + phi(theirs + k) - phi(k);
-    rows.push({k, gained, after: gap - gained, ahead: gap - gained < 0});
-  }
-  return rows;
-}
-
-/* ===================================================================== *
  *  Tiny SVG helpers.  No chart library — nothing to fail to load offline.
  * ===================================================================== */
 const SVGNS = 'http://www.w3.org/2000/svg';
@@ -336,7 +321,7 @@ function axes(s, p, xr, yr, xlab, ylab, xticks = 6, yticks = 5){
       stroke:'#272d38', 'stroke-width':1}));
     const t = svgEl('text', {x:p.l - 9, y:y + 4, fill:'#6b7280', 'font-size':11,
       'text-anchor':'end', 'font-family':'monospace'});
-    t.textContent = v.toFixed(Math.abs(yr[1] - yr[0]) < 4 ? 1 : 0);
+    t.textContent = v.toFixed(Math.abs(yr[1] - yr[0]) / yticks < 2 ? 1 : 0);
     s.appendChild(t);
   }
   for(let i = 0; i <= xticks; i++){
@@ -371,58 +356,6 @@ function nice(lo, hi){                   // pad a range so the curve never touch
 /* ===================================================================== *
  *  1. UNDERCUT
  * ===================================================================== */
-function initUndercut(){
-  const rs = $('#u-race'), ps = $('#u-pair');
-  IDX.races.forEach(r => rs.add(new Option(`R${r.round} · ${r.event}`, r.round)));
-  // Austria is the best demo race — 71 laps, 41 stops. Default to it if present.
-  rs.value = IDX.races.some(r => r.round === 8) ? 8 : IDX.races[0].round;
-  Object.keys(MODEL.pairs).sort().forEach(p => ps.add(new Option(p.replace('>', ' → '), p)));
-  ps.value = MODEL.pairs['MEDIUM>HARD'] != null ? 'MEDIUM>HARD' : Object.keys(MODEL.pairs)[0];
-  ['#u-race','#u-pair','#u-mine','#u-theirs','#u-gap']
-    .forEach(s => $(s).addEventListener('input', drawUndercut));
-  drawUndercut();
-}
-function drawUndercut(){
-  const rnd  = +$('#u-race').value;
-  const r    = IDX.races.find(x => x.round === rnd);
-  const pair = $('#u-pair').value;
-  const mine = +$('#u-mine').value, theirs = +$('#u-theirs').value, gap = +$('#u-gap').value;
-
-  $('#u-mine-v').textContent   = mine + ' laps';
-  $('#u-theirs-v').textContent = theirs + ' laps';
-  $('#u-gap-v').textContent    = gap.toFixed(1) + ' s';
-  $('#u-pair-v').textContent   = 'off → on';
-  $('#u-ctx').innerHTML =
-    `Track temperature <b>${fmt(r.track_temp_c, 1)} °C</b> · measured pit loss here
-     <b>${fmt(r.pit_loss_s, 2)} s</b> · ${r.stops} real stops this race.
-     Track temp is read from the race, not typed in.`;
-
-  const rows = undercut({pair, trackTemp:r.track_temp_c, mine, theirs, gap});
-  const first = rows[0];
-  $('#u-rate').textContent = (first.gained >= 0 ? '+' : '') + fmt(first.gained, 2);
-
-  const covers = Math.ceil(gap / Math.max(first.gained, 1e-9));
-  $('#u-sum').innerHTML = `
-    <div><span class="k">a fresh tyre buys, lap one</span><span>${fmt(first.gained,2)} s</span></div>
-    <div><span class="k">you are behind by</span><span>${gap.toFixed(1)} s</span></div>
-    <div><span class="k">laps of clear air to cover it</span><span>${
-      first.gained <= 0 ? 'never — no pace gain' :
-      (covers <= 8 ? covers + (covers === 1 ? ' lap' : ' laps') : 'more than 8')
-    }</span></div>`;
-  $('#u-cost').innerHTML = `<strong>The cost.</strong> You rejoin on a tyre that is
-    fresh, but every lap they stay out you are one lap older than they will be when they
-    stop. Respond after ${first.k} lap and you carry a ${first.k}-lap tyre deficit.`;
-
-  $('#u-rows').innerHTML = rows.map(x => `
-    <tr class="${x.ahead ? 'ahead' : ''}">
-      <td class="l">${x.k} lap${x.k > 1 ? 's' : ''}</td>
-      <td>${fmt(x.gained, 2)} s</td>
-      <td>${x.after < 0 ? '−' : ''}${fmt(Math.abs(x.after), 2)} s${
-        x.ahead ? ' ✓' : ''}</td>
-      <td>${x.k} lap${x.k > 1 ? 's' : ''} older</td>
-    </tr>`).join('');
-}
-
 /* ===================================================================== *
  *  2. SIGN FLIP
  * ===================================================================== */
@@ -486,23 +419,31 @@ function drawSignFlip(comp){
 /* ===================================================================== *
  *  3. REPLAY
  * ===================================================================== */
-let RRACE = null, RREPLAY = null;
+let RRACE = null, RREPLAY = null, RINTEL = null, replayLoad = 0;
 
 function initReplay(){
   const rs = $('#r-race');
   IDX.races.forEach(r => rs.add(new Option(`R${r.round} · ${r.event}`, r.round)));
-  rs.value = IDX.races.some(r => r.round === 8) ? 8 : IDX.races[0].round;
+  rs.value = IDX.races.some(r => r.round === 11) ? 11 : IDX.races[0].round;
   rs.onchange = loadReplay;
   $('#r-lap').addEventListener('input', drawReplay);
   loadReplay();
 }
 async function loadReplay(){
   const rnd = +$('#r-race').value;
+  const requestId = ++replayLoad;
   $('#r-rows').innerHTML = `<tr><td colspan="6" class="l">loading…</td></tr>`;
   try{
     // Unfiltered feed for the scrubber (zero blank laps); races/ for the real stops.
-    [RREPLAY, RRACE] = await Promise.all([race(rnd, 'replay'), race(rnd, 'races')]);
+    const loaded = await Promise.all([race(rnd, 'replay'), race(rnd, 'races'), race(rnd, 'intelligence')]);
+    if(requestId !== replayLoad) return;
+    [RREPLAY, RRACE, RINTEL] = loaded;
+    const selector = $('#i-driver'), previous = selector.value;
+    selector.replaceChildren(...RREPLAY.drivers.map(d => new Option(d,d)));
+    selector.value = RREPLAY.drivers.includes(previous) ? previous : (RREPLAY.drivers.includes('NOR') ? 'NOR' : RREPLAY.drivers[0]);
   }catch(e){
+    if(requestId !== replayLoad) return;
+    RREPLAY = RRACE = RINTEL = null;
     $('#r-rows').innerHTML = `<tr><td colspan="6" class="l">could not load: ${e.message}</td></tr>`;
     return;
   }
@@ -537,14 +478,9 @@ function drawReplay(){
   }else{
     $('#r-rows').innerHTML = rows.map(r => {
       const c = r.compound || 'none';
-      /* What a stop RIGHT NOW would buy: fit the hard, the usual end-of-race choice.
-         The feed also carries INTERMEDIATE and null compounds, for which no pair exists
-         in the model — show a dash rather than silently scoring them as HARD>HARD. */
-      const pair = `${c}>HARD`;
-      const buys = MODEL.pairs[pair] != null
-        ? step0(pair, RRACE.track_temp_c) - phi(int(r.tyre_age)) + phi(MODEL.fresh_age)
-        : null;
-      return `<tr class="${r.clean ? '' : 'dirty'}">
+      const snapshot = RINTEL?.snapshots.find(s => s.lap === L && s.driver === r.driver);
+      const buys = snapshot?.forecasts.find(f => f.horizon === 1)?.pace_s;
+      return `<tr class="${snapshot ? '' : 'dirty'}">
         <td>${r.position != null ? int(r.position) : '—'}</td>
         <td class="l">${r.driver}</td>
         <td class="l"><span class="pill c-${c}">${c === 'none' ? '—' : c.slice(0,4)}</span></td>
@@ -554,16 +490,12 @@ function drawReplay(){
     }).join('');
   }
 
-  // `stops` holds the WHOLE race including the future — filter or you show a judge a
-  // stop before it happened, which is the exact sin this project criticises.
-  const sofar = RRACE.stops.filter(s => s.pit_lap <= L)
-                           .sort((a, b) => b.pit_lap - a.pit_lap);
-  $('#r-stops').innerHTML = sofar.length
-    ? sofar.map(s => `<tr${s.pit_lap === L ? ' style="color:#3fa7dc"' : ''}>
-        <td class="l">L${s.pit_lap}</td><td class="l">${s.driver}</td>
-        <td class="l" style="font-size:11.5px">${s.pair.replace('>', '→')}</td>
-        <td>${fmt(s.step_obs_s, 2)} s</td></tr>`).join('')
-    : `<tr><td class="l">no stops yet</td></tr>`;
+  const sofar = RREPLAY.laps_data.filter(r => r.in_lap && r.lap <= L)
+    .sort((a,b) => b.lap-a.lap);
+  $('#r-stops').innerHTML = sofar.length ? sofar.map(s => `<tr><td>L${s.lap}</td>
+    <td class="l">${s.driver}</td><td>${s.compound ?? '—'}</td></tr>`).join('')
+    : '<tr><td class="l">No pit entries observed yet</td></tr>';
+  drawIntelligence();
 }
 
 /* ===================================================================== *
@@ -642,12 +574,14 @@ $('#nav').addEventListener('click', e => {
     DEG = MODEL.degradation;
     const h = IDX.headline;
     $('#headnums').innerHTML = `
-      <div><b>${fmt(h.rmse_s, 2)}</b>s/lap RMSE, out of sample</div>
+      <div><b>PITWALL</b>chronological race intelligence</div>
       <div><b>${fmt(h.calib_slope, 2)}</b>calibration slope</div>
       <div><b>+${fmt(h.improvement_pct, 1)}%</b>vs season mean</div>
       <div><b>${h.stops}</b>real pit stops</div>
       <div><b>${h.events}</b>races</div>`;
-    initUndercut();
+    initIntelligence();
+    initReplay();
+    started.replay = true;
     initSignFlip();
     started.undercut = started.signflip = true;
   }catch(e){
@@ -661,5 +595,6 @@ $('#nav').addEventListener('click', e => {
   }
 })();
 </script>
+<script src="intelligence.js"></script>
 </body>
 </html>
