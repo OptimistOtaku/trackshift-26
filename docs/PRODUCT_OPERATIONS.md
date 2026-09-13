@@ -195,3 +195,22 @@ and traffic/decay accounting.
 The current tyre-response improvement is documented separately from interface
 polish. Physical tyre life, optimal full-race pit lap, realized time saved and
 positions gained remain unvalidated.
+
+
+### Pit planner input and estimate separation
+
+The main controls describe available fresh compounds and the compound to compare.
+Inventory starts as an explicitly labelled assumption; unchecking a compound removes
+it from both linked selectors. An empty inventory clears the plan.
+
+The summary calculates the tyre pace benefit, full stop cost and net five-lap gain
+against staying out. Its range propagates tyre-response uncertainty only; it does
+not establish a full-race optimal strategy. Current age outside the transition's
+training range is disclosed beside the result.
+
+Optional assumptions are collapsed by default. Pit cost uses the median of at
+least three timestamp-resolved stops, otherwise a labelled 22-second fallback.
+Extra traffic and extra new-set pace loss default to zero; they are sensitivity
+inputs, not predictions of future traffic or physical wear. Reset restores all
+three defaults. Automatic pit cost is recomputed on seeking or switching races,
+including when the new context has insufficient observations.

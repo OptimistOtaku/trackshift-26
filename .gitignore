@@ -21,6 +21,19 @@ venv/
 .ruff_cache/
 .mypy_cache/
 
+# AI assistants, IDE configs & scratch
+.claude/
+.gemini/
+.agents/
+.chart-data-*/
+
+# Internal hackathon prep, rehearsal scripts & judging cheat sheets
+docs/JUDGE_QA.md
+docs/FOUR_STAGE_PITCH.md
+docs/CATEGORY_ASSESSMENT.md
+docs/HACKATHON_READINESS.md
+docs/DEMO_CONTRACT.md
+
 # editors
 .vscode/
 .idea/

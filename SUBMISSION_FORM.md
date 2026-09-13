@@ -5,7 +5,7 @@ deck is `artifacts/submission/PITWALL_Jury_Final.pptx`; the portable demo is
 `artifacts/submission/PITWALL_Offline_Demo.zip`. The four-chapter guided console
 and six-slide browser presentation are complete. The click sequence and speaker
 script are in `docs/JURY_PRESENTATION.md`. Current evidence is documented in
-`docs/STRATEGY_EDGE.md` and `docs/HACKATHON_READINESS.md`.
+`docs/STRATEGY_EDGE.md` and `docs/PRODUCT_OPERATIONS.md`.
 
 ## Theme
 

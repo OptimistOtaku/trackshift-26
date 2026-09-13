@@ -1,7 +1,7 @@
 # PITWALL: the measurable team advantage
 
 Updated after the 12 September environmental rebuild. See
-`HACKATHON_READINESS.md` for the console, traffic-unit correction, missing data,
+`PRODUCT_OPERATIONS.md` for the console, traffic-unit correction, missing data,
 environmental comparison, and work remaining before stronger product claims.
 
 The product answers: **“Where will we lose time to our rival, and what can we afford

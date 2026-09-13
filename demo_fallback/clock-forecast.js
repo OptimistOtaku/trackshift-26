@@ -117,7 +117,7 @@ function drawLiveConnections(state,score){
   if(key===clockPaintKey)return;clockPaintKey=key;
   const resolved=RREPLAY.laps_data.filter(r=>Number.isFinite(r.completed_s)&&r.completed_s<=raceClock);
   const pit=PitwallStrategy.pitLossAt({...RREPLAY,laps_data:resolved},Math.max(0,...resolved.map(r=>r.lap)));
-  if(!pitLossManual&&pit.n>=3)$('#o-pitloss').value=pit.median_s.toFixed(1);
+  if(!pitLossManual)$('#o-pitloss').value=pit.n>=3?pit.median_s.toFixed(1):'22';
   const settings={replay:RREPLAY,pace:RCLOCK,pit:RPITCLOCK,time:raceClock,driver,compound,
     responseLaps:+$('#m-response').value,pitLoss:+$('#o-pitloss').value,trafficLoss:+$('#o-traffic').value,decay:+$('#o-decay').value,
     inventory:['HARD','MEDIUM','SOFT'].filter(c=>$('#o-'+c.toLowerCase()).checked)};
