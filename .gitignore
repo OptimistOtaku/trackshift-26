@@ -15,3 +15,19 @@ venv/
 .ipynb_checkpoints/
 .DS_Store
 .build/
+
+# tool caches - regenerated on every run, never source
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# editors
+.vscode/
+.idea/
+
+# Windows + OneDrive + Office scratch. This repo lives under OneDrive, and opening the
+# .pptx deck drops a ~$ lock file next to it - none of it belongs in history.
+Thumbs.db
+desktop.ini
+~$*
+*.tmp
