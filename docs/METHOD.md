@@ -106,7 +106,7 @@ information. A saturating form does not rescue it: τ is unidentified, SSR falli
 The honest conclusion is that a defensible in-sample degradation curve can be nearly worthless
 out of sample, and only a natural experiment reveals it. `src/pitwall/stopvalue.py` models the
 pit-stop step directly instead: leave-one-event-out, no free constants granted to any method,
-**+11.9% RMSE over the season mean at calibration 0.82**, winning 7 of 11 events.
+**+11.1% RMSE over the season mean at calibration 0.79**, winning 7 of 11 events.
 
 ## Real-world transfer (TrackShift 2026 brief: motorsport is the proof of concept)
 

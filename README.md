@@ -21,8 +21,8 @@ seconds per lap a driver gains by fitting a new tyre.**
 |---|---|
 | Fuel sensitivity, estimated not assumed | **+0.0294 s/kg** (se 0.0039) — literature says 0.030–0.035 |
 | What a fresh tyre is worth | **+1.26 s/lap** (sd 1.03), measured over 288 real pit stops |
-| Deployed model vs season mean | **+11.9% RMSE**, leave-one-event-out, no free constants |
-| Calibration slope | **0.82** (1.0 = magnitudes correct) |
+| Deployed model vs season mean | **+11.1% RMSE**, leave-one-event-out, no free constants |
+| Calibration slope | **0.79** (1.0 = magnitudes correct) |
 | Per-event record | wins **7 of 11** events |
 
 ## The four questions, in the order we asked them
@@ -58,8 +58,8 @@ unidentified (SSR falls 0.1% between τ=3 and τ=44 laps).
 
 **4. What does predict it?** Compound pair, track temperature (a hotter track makes fresh
 rubber worth more), and **measured** traffic. Tyre age is deliberately *not* a regressor: it
-is significant in sample (R² 0.354 → 0.386) but costs out-of-sample performance
-(11.9% → 11.2%, calibration 0.82 → 0.77). We report the effect and omit it from the model.
+is significant in sample (R² 0.350 → 0.382) but costs out-of-sample performance
+(11.1% → 10.3%, calibration 0.79 → 0.73). We report the effect and omit it from the model.
 
 ## What makes the numbers trustworthy
 
@@ -82,7 +82,7 @@ is significant in sample (R² 0.354 → 0.386) but costs out-of-sample performan
 
 The pooled gain is weighted by stop count and carried by the larger events; by event count it
 is 7 of 11. Track temperature enters as an event mean, so it partly proxies for circuit
-identity, and 12 events cannot cleanly separate the two. Past tyre age 33 there are only 24
+identity, and 12 events cannot cleanly separate the two. Past tyre age 30 there are only 24
 stops, and drivers running a tyre that long were nursing it — selection plausibly explains
 part of the decline. The scripts print all three caveats rather than smoothing them over.
 

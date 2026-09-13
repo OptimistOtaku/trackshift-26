@@ -3,8 +3,8 @@
 Two stages, because the fuel coefficient is identified in one place and needed in
 another.
 
-STAGE A - race. Fuel mass is *known* here: it is set by the regulation load and the
-lap number. So we regress on it directly, with driver fixed effects but deliberately
+STAGE A - race. Fuel mass is a linear-burn proxy, not measured telemetry. Its scale
+comes from an assumed starting load and lap number. We regress on it with driver effects but deliberately
 no run intercepts. Identification comes from the fact that stints begin at different
 points in the race, so the same tyre age is observed at many different fuel loads.
 
@@ -19,7 +19,7 @@ CONFOUNDERS, AND WHICH ONES WE MEASURE. Three things move lap time monotonically
 run and are therefore candidates to be mistaken for degradation: fuel burn, traffic, and
 track evolution. All three are measured rather than assumed away.
 
-  fuel        known from the regulation load and the lap number (stage A)
+  fuel        modelled from an assumed load and linear burn (stage A)
   traffic     measured from position telemetry as time spent within 1.0s of a car ahead
   evolution   measured as log rubber laid down - see `_evo_terms`
 

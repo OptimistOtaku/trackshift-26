@@ -295,11 +295,11 @@ tf = box(s, 0.6, 2.1, 5.4, 4.7)
 bullet(tf, "▪", "Leave-one-event-out, with no free constant granted to any method — "
         "the model must get the level right, not just the shape.", 14.5, GOOD, INK, first=True,
        after=10)
-bullet(tf, "+11.9%", "RMSE over the season-mean baseline; calibration slope 0.82; wins 7 of "
+bullet(tf, "+11.1%", "RMSE over the season-mean baseline; calibration slope 0.79; wins 7 of "
         "11 held-out events.", 14.5, GOOD, INK, after=10)
-bullet(tf, "▪", "Robust to method-blind outlier caps (+10–12% across all cuts).",
+bullet(tf, "▪", "Robust to method-blind outlier caps (+9.6–11.1% across all cuts).",
        14.5, GOOD, INK, after=10)
-bullet(tf, "▪", "Signal: compound pair, track temp (+0.041 s/°C, p<0.001) and "
+bullet(tf, "▪", "Signal: compound pair, track temp (+0.039 s/°C, p<0.001) and "
         "traffic (+0.50 s, p=0.003). Tyre age is reported but not deployed — it costs "
         "accuracy out of sample.", 14.5, GOOD, INK, after=0)
 image_fit(s, "fig6_per_event.png", 6.3, 2.1, 6.6, 4.55)
@@ -327,7 +327,8 @@ bullet(tf, "▪", "Limits stated, not smoothed: the pooled gain is carried by la
 rect(s, 7.05, 2.15, 5.6, 4.5, PANEL)
 tf2 = box(s, 7.4, 2.5, 4.95, 3.9, anchor=MSO_ANCHOR.MIDDLE)
 para(tf2, "OUT-OF-SAMPLE SCORECARD", 12, ACCENT, bold=True, first=True, after=12)
-for k, v in (("RMSE gain vs season mean", "+11.9%"), ("calibration slope", "0.82"),
+for k, v in (("RMSE, out of sample", "0.96 s/lap"),
+             ("RMSE gain vs season mean", "+11.1%"), ("calibration slope", "0.79"),
              ("events won", "7 / 11"), ("stops scored", "288"),
              ("fuel λ vs literature", "0.029 / 0.030–0.035")):
     p = tf2.add_paragraph()
@@ -340,7 +341,57 @@ footer(s, 9)
 
 
 # ======================================================================== #
-# 10. REAL-WORLD TRANSFER
+# 10. WHAT WE CUT
+#
+# The deck used to carry one falsification (the practice curve, slide 5) and
+# quietly keep the other two in the codebase. That is the wrong way round: the
+# three cuts ARE the differentiator, and a judge who finds an unvalidated
+# feature we did not mention costs us more than the feature ever earned.
+#
+# Every number here is produced by a script in this repo, named on the slide so
+# it can be re-run in front of us.
+# ======================================================================== #
+s = slide()
+header(s, "What we cut", "Three features we built, tested, and killed", accent=WARN)
+tf = box(s, 0.6, 2.05, 6.5, 4.8)
+bullet(tf, "1", "The practice degradation curve. Clean in sample, and its stop-by-stop "
+        "variation is uncorrelated with 288 real stops — calibration slope 0.006.",
+       14.5, WARN, INK, first=True, after=11)
+bullet(tf, "2", "The pit-lap recommendation. It covers 68.4% of real stops; the same window "
+        "placed mid-race covers 65.8%. Per event a constant tracks the chosen lap better "
+        "than we do (MAE 4.9 laps vs 8.4), and with race length divided out we carry no "
+        "signal at all (r = +0.08, p = 0.80).", 14.5, WARN, INK, after=11)
+bullet(tf, "3", "“You will gain a place.” Over 137 head-to-head duels our undercut margin "
+        "ranks the winner at AUC 0.836 — and so does the gap alone, with no model. Our own "
+        "term scored by itself is 0.490, a coin flip.", 14.5, WARN, INK, after=11)
+bullet(tf, "→", "The third one is arithmetic, not a bug: margin = gain − gap, and the gain "
+        "we supply has sd 0.46 s against the gap's 14.6 s. A term 31× smaller cannot reorder "
+        "anything.", 14.5, MUTED, INK, after=0)
+
+rect(s, 7.35, 2.15, 5.3, 4.5, PANEL)
+tf2 = box(s, 7.65, 2.45, 4.7, 3.9, anchor=MSO_ANCHOR.MIDDLE)
+para(tf2, "WHAT SURVIVED CONTACT", 12, ACCENT, bold=True, first=True, after=14)
+for claim, verdict, num, col in (
+        ("practice curve → a race", "CUT", "calib 0.006", WARN),
+        ("pit window → vs mid-race", "CUT", "68.4 / 65.8", WARN),
+        ("undercut → track position", "CUT", "AUC 0.836 / 0.836", WARN),
+        ("fresh-tyre pace → measured step", "SHIPS", "0.96 s/lap", GOOD)):
+    p = tf2.add_paragraph()
+    p.space_after = Pt(6)
+    r = p.add_run(); r.text = claim
+    r.font.size = Pt(12.5); r.font.name = FONT; r.font.color.rgb = INK
+    p2 = tf2.add_paragraph()
+    p2.space_after = Pt(13)
+    r1 = p2.add_run(); r1.text = verdict + "   "
+    r1.font.size = Pt(12.5); r1.font.bold = True; r1.font.name = FONT; r1.font.color.rgb = col
+    r2 = p2.add_run(); r2.text = num
+    r2.font.size = Pt(12.5); r2.font.name = FONT; r2.font.color.rgb = MUTED
+para(tf2, "check_window_placebo.py  ·  check_undercut_backtest.py", 9.5, SUBTLE, after=0)
+footer(s, 10)
+
+
+# ======================================================================== #
+# 11. REAL-WORLD TRANSFER
 # ======================================================================== #
 s = slide()
 header(s, "Beyond motorsport", "The same trap sits in Indian fleet tyre management")
@@ -363,11 +414,11 @@ para(tf2, "fuel → axle load", 15, PAPER, after=5)
 para(tf2, "traffic → road roughness", 15, PAPER, after=5)
 para(tf2, "track evo → ambient temp", 15, PAPER, after=5)
 para(tf2, "pit stop → tyre swap record", 15, PAPER, after=0)
-footer(s, 10)
+footer(s, 11)
 
 
 # ======================================================================== #
-# 11. TECH & DATA
+# 12. TECH & DATA
 # ======================================================================== #
 s = slide()
 header(s, "Stack", "Built on real telemetry, reproducible end to end")
@@ -393,11 +444,11 @@ para(col3, "pandas · NumPy · statsmodels · SciPy · matplotlib", 13.5, INK,
 para(col3, "REPRODUCIBILITY", 13, ACCENT, bold=True, after=8)
 para(col3, "One script regenerates every number and figure from the cached season.", 13.5,
      INK, after=0, spacing=1.15)
-footer(s, 11)
+footer(s, 12)
 
 
 # ======================================================================== #
-# 12. CLOSE
+# 13. CLOSE
 # ======================================================================== #
 s = slide(INK)
 rect(s, 0, 0, 0.28, 7.5, RED)
@@ -409,7 +460,7 @@ para(tf, "and shipped the one that survives an actual race.", 19, RGBColor(0xD5,
      after=0)
 tiles = [("+0.029 s/kg", "fuel sensitivity, matches the literature", ACCENT),
          ("0.006", "calibration of the curve everyone ships", WARN),
-         ("+11.9%", "out-of-sample gain of the model we ship", GOOD)]
+         ("+11.1%", "out-of-sample gain of the model we ship", GOOD)]
 for i, (big, small, col) in enumerate(tiles):
     x = 1.2 + i * 3.9
     rect(s, x, 4.15, 3.55, 1.85, DARKPANEL)

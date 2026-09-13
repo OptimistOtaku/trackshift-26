@@ -13,7 +13,7 @@ entirely cancelled. Measured over 288 stops and 12 events, fitting a new tyre is
 a degradation curve assumes:
 
     linear test      -0.006 +/- 0.011 s per lap of age,  p = 0.58   <- finds nothing
-    quadratic test   age +0.105 (p<0.001), age^2 -0.00207 (p<0.001), joint p = 0.005
+    quadratic test   age +0.070 (p=0.021), age^2 -0.00164 (p=0.002), joint p = 0.005
 
 The linear test finds nothing because the relationship turns over. The value of a stop
 climbs to roughly tyre age 21-25 and then flattens and declines. So degradation is real and
@@ -21,7 +21,7 @@ does accumulate - for about the first 20 laps of a tyre's life - and then stops 
 A practice-fitted quadratic that keeps climbing therefore over-values a late stop, which is
 a bias in the direction of stopping too often.
 
-Two caveats on the decline itself, since it is the least certain part: past age 33 there are
+Two caveats on the decline itself, since it is the least certain part: past age 30 there are
 only 24 stops, and drivers who run a tyre that long were nursing it rather than pushing, so
 selection plausibly explains some of the fall.
 
@@ -32,24 +32,27 @@ the resulting curve under-predicts the step badly (calibration -1.77).
 WHAT THIS MODEL DOES INSTEAD. It predicts the decision-relevant quantity directly from race
 history: the seconds per lap a driver gains by fitting a new tyre. Out of sample,
 leave-one-event-out, with no free constants granted to anybody, that beats the season mean by
-11.9% RMSE at a calibration slope of 0.82. The signal lives in three places:
+11.1% RMSE at a calibration slope of 0.79. The signal lives in three places:
 
   compound pair    which tyre is coming off and which is going on
-  track temp       +0.042 s/degC (p=0.001) - a hotter track makes fresh rubber worth more
-  traffic          +0.632 s (p=0.001) - measured from position telemetry, not inferred
+  track temp       +0.039 s/degC (p=0.001) - a hotter track makes fresh rubber worth more
+  traffic          +0.504 s (p=0.003) - measured from position telemetry, not inferred
 
 Tyre age is NOT a regressor in the deployed model, and the reason is worth stating precisely
 because it is easy to misreport. Age matters in sample: entered with curvature its terms are
-jointly significant (p=0.005) and R2 rises from 0.354 to 0.386. It simply does not pay for
-itself out of sample - 11.9% -> 11.2% RMSE, calibration 0.82 -> 0.77 - because the effect is
+jointly significant (p=0.005) and R2 rises from 0.350 to 0.382. It simply does not pay for
+itself out of sample - 11.1% -> 10.3% RMSE, calibration 0.79 -> 0.73 - because the effect is
 small against the stop-to-stop noise and partly redundant with what compound and temperature
 already encode. `age_test` reports the effect; the model omits it.
 
 HONEST LIMITS. The pooled gain is weighted by stop count and is carried by the larger
-events; by event count the model wins at 7 of 11. Track temperature enters as an event mean,
-so it partly proxies for circuit identity, and with 12 events it cannot be cleanly separated
-from other circuit characteristics. Both caveats are reported by the scripts rather than
-smoothed over.
+events; by event count the model wins at 7 of 11. Track temperature is a causal expanding
+mean - each stop sees only the laps run before it, see `stop_table` - so it is a covariate
+the pit wall could really hold, but that fixes only the timing problem and not the
+identification one: 99.9% of its variance is still between events (within an event the
+stop-to-stop spread averages 0.32 degC), so it still largely proxies for circuit identity,
+and with 12 events it cannot be cleanly separated from other circuit characteristics. All of
+these caveats are reported by the scripts rather than smoothed over.
 """
 from __future__ import annotations
 
@@ -74,7 +77,7 @@ SPECS: dict[str, list[str]] = {
 }
 # The deployed specification. Age is left out deliberately, and the reason is not that age
 # does not matter - it does, see `age_test` - but that it buys nothing out of sample
-# (11.9% -> 11.2% RMSE gain, calibration 0.82 -> 0.77) while costing two parameters.
+# (11.1% -> 10.3% RMSE gain, calibration 0.79 -> 0.73) while costing two parameters.
 FULL = SPECS["pair+temp+traffic"]
 MIN_TEST_STOPS = 5      # an event with fewer scored stops is too noisy to rank
 MIN_TRAIN_EVENTS = 3    # fewer than this and the training fit is not meaningful
@@ -104,22 +107,75 @@ class StopValue:
 def stop_table(season: pd.DataFrame) -> pd.DataFrame:
     """One row per race pit stop, with everything the model is allowed to know.
 
-    Track temperature is taken as the event's race mean rather than the lap's own reading:
-    the decision this model supports is made before the stop, and a per-lap temperature
-    would be a slightly-into-the-future covariate for no real gain.
+    "Allowed to know" is meant literally, and track temperature is where it bites. This
+    column used to be the event's whole-race mean, which is not a covariate a pit wall
+    could ever hold: a stop on lap 10 of 71 was being described by a temperature averaged
+    over laps 11-71, laps that had not been run when the call was made. In a live replay
+    that is a model reading the future, and the earlier the stop the more future it reads.
+
+    It is now the mean over that race's laps up to and including the stop lap - an
+    expanding mean, recomputed at every stop. Including the stop lap itself is deliberate
+    and is not a leak: `PitLap` is the last clean lap on the old tyre, so its temperature
+    reading is already in hand at the moment the driver is told to box.
+
+    Two honest consequences. The mean is taken over the laps that survived cleaning, since
+    those are the rows this frame has, so a race whose opening laps were all filtered out
+    starts its average later than lap 1. And an early stop now averages few laps, so its
+    temperature is noisier than a late stop's - correctly so, because that is how much the
+    pit wall actually knows at that point.
     """
     race = season.loc[season["IsRace"]]
     st = pit_steps(race)
     if st.empty:
         return st
 
-    tt = race.groupby("Round")["TrackTemp"].mean()
-    st["tt"] = st["Round"].map(tt).astype(float)
+    st["tt"] = _causal_track_temp(race, st)
+    # A stop with no track temperature at all before it is dropped rather than filled: `tt`
+    # is a level in degC, not a centred deviation, so there is no neutral value to invent.
     st = st.dropna(subset=["step_obs", "age_old", "age_new", "tt"]).copy()
     # A missing traffic reading means the position feed was unavailable, not that the car
     # was in clear air; zero is the sample mean of the centred variable, i.e. "typical".
     st["d_close"] = st["d_close"].fillna(0.0)
     return st
+
+
+def _causal_track_temp(race: pd.DataFrame, st: pd.DataFrame) -> np.ndarray:
+    """Mean track temperature over laps 1..PitLap of each stop's own race.
+
+    Returned in `st` row order. Vectorised on purpose - a per-round expanding mean over lap
+    number, then an as-of join onto the stops - because the loop version is 288 groupbys
+    over the race frame and gets slower every time the season grows.
+
+    Sums and counts are carried separately and divided at the end rather than averaging
+    per-lap averages. Those differ whenever laps carry different numbers of cars, and the
+    sum/count form is the one that matches what the leaking version computed, so the
+    before/after comparison isolates the causal fix instead of also changing the weighting.
+    Carrying the count also handles missing readings for free: a lap whose weather feed was
+    unavailable contributes nothing to either total, exactly as `Series.mean` skips it.
+    """
+    lap = (race.groupby(["Round", "LapNumber"], as_index=False)
+           .agg(tt_sum=("TrackTemp", "sum"), tt_n=("TrackTemp", "count"))
+           .sort_values(["Round", "LapNumber"], kind="stable"))
+    g = lap.groupby("Round")
+    # replace(0, nan): no readings yet in this race means undefined, not zero degrees.
+    lap["tt_cum"] = g["tt_sum"].cumsum() / g["tt_n"].cumsum().replace(0, np.nan)
+
+    left = st[["Round", "PitLap"]].copy()
+    left["_row"] = np.arange(len(left), dtype=int)
+    # merge_asof needs both join keys globally sorted, not merely sorted within `by`.
+    left = left.sort_values("PitLap", kind="stable")
+    lap = lap.sort_values("LapNumber", kind="stable")
+
+    # direction="backward": take the latest lap at or before the stop lap. An exact match is
+    # the normal case; the fallback matters only if the stop lap itself was filtered out,
+    # and then it uses the laps before it rather than reaching forward past the stop.
+    joined = pd.merge_asof(left, lap[["Round", "LapNumber", "tt_cum"]],
+                           left_on="PitLap", right_on="LapNumber", by="Round",
+                           direction="backward")
+
+    out = np.full(len(st), np.nan)
+    out[joined["_row"].to_numpy(int)] = joined["tt_cum"].to_numpy(float)
+    return out
 
 
 def _design(d: pd.DataFrame, spec: list[str], pairs: list[str],
