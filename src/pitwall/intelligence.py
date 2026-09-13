@@ -14,10 +14,11 @@ import json
 
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import HistGradientBoostingRegressor
+from sklearn.ensemble import HistGradientBoostingRegressor, ExtraTreesRegressor
 from sklearn.linear_model import Ridge
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
+from .conditions import CONDITION_FEATURES, condition_features
 
 SLICKS = ("SOFT", "MEDIUM", "HARD")
 HORIZONS = (1, 3, 5)
@@ -25,6 +26,18 @@ FEATURES = ["horizon", "age", "progress", "race_laps", "n_recent", "spread",
             "last_minus_median", "median3_minus_last", "median8_minus_last",
             "slope", "slope_h", "kalman_minus_last", "kalman_trend", "kalman_h",
             "last_delta", "field_delta", "soft", "medium", "hard"]
+ENRICHED = FEATURES + ["pace_scale", "innovation", "median5_minus_last",
+    "mean3_minus_last", "mean8_minus_last", "field_relative", "field_spread",
+    "trend_change", "history_span", "position"]
+CANDIDATES = ("persistence", "rolling_median", "recent_trend", "state_space",
+    "ridge", "boosted", "hybrid", "robust_mean", "robust_deep", "extra_trees",
+    "enriched_median", "mean_state_blend", "mean_median_blend",
+    "weather_model", "traffic_model", "conditions_model", "conditions_blend")
+WEATHER = ENRICHED + CONDITION_FEATURES[:7] + ["thermal_age", "field_laps_log"]
+TRAFFIC = ENRICHED + CONDITION_FEATURES[7:12] + ["traffic_age", "field_laps_log"]
+CONDITIONS = ENRICHED + CONDITION_FEATURES
+MODEL_FEATURES = {"weather_model": WEATHER, "traffic_model": TRAFFIC,
+                  "conditions_model": CONDITIONS}
 
 
 def finite(value) -> bool:
@@ -52,11 +65,13 @@ class PaceState:
     last_row: dict | None = None
     segment: int = 0
     innovation: float = 0.
+    previous_conditions: dict | None = None
 
     def observe(self, row: dict) -> bool:
         if self.last_row is not None and row["lap"] <= self.last_row["lap"]:
             raise ValueError("Observations must arrive in increasing lap order per driver")
         old = self.last_row
+        self.previous_conditions = old
         reset = old is not None and (
             row.get("out_lap") or old.get("in_lap")
             or row.get("compound") != old.get("compound")
@@ -93,7 +108,8 @@ class PaceState:
         self.history = self.history[-12:]
         return True
 
-    def features(self, horizon: int, race_laps: int, field_delta: float) -> dict:
+    def features(self, horizon: int, race_laps: int, field_delta: float,
+                 field_pace: float = 0., field_spread: float = 0.) -> dict:
         if self.x is None or not self.history:
             raise ValueError("No usable pace observations")
         recent = self.history[-8:]
@@ -116,7 +132,14 @@ class PaceState:
                     kalman_trend=float(self.x[1]), kalman_h=float(self.x[1] * horizon),
                     last_delta=float(times[-1] - times[-2]) if len(times) > 1 else 0.,
                     field_delta=field_delta, soft=int(c == "SOFT"),
-                    medium=int(c == "MEDIUM"), hard=int(c == "HARD"))
+                    medium=int(c == "MEDIUM"), hard=int(c == "HARD"),
+                    pace_scale=last, innovation=float(np.clip(self.innovation, -5, 5)),
+                    median5_minus_last=float(np.median(times[-5:]))-last,
+                    mean3_minus_last=float(np.mean(times[-3:]))-last,
+                    mean8_minus_last=float(np.mean(times))-last,
+                    field_relative=last-field_pace, field_spread=field_spread,
+                    trend_change=float(self.x[1])-slope, history_span=laps[-1]-laps[0],
+                    position=float(self.last_row.get("position") or 0))
 
 
 def replay_features(race: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -135,7 +158,9 @@ def replay_features(race: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
         grouped.setdefault(int(row["lap"]), []).append(row)
     states: dict[str, PaceState] = {}
     features, observations = [], []
+    field_laps = 0
     for lap, rows in sorted(grouped.items()):
+        field_laps += len(rows)
         deltas = []
         for row in rows:
             state = states.setdefault(row["driver"], PaceState())
@@ -145,6 +170,9 @@ def replay_features(race: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
                     and row["tyre_age"] == old["tyre_age"] + 1):
                 deltas.append(row["lap_time_s"] - old["lap_time_s"])
         field_delta = float(np.median(deltas)) if deltas else 0.
+        field_times = [r["lap_time_s"] for r in rows if usable(r)]
+        field_pace = float(np.median(field_times)) if field_times else 0.
+        field_spread = float(np.median(np.abs(np.asarray(field_times)-field_pace))) if field_times else 0.
         for row in sorted(rows, key=lambda r: r["driver"]):
             state = states[row["driver"]]
             ok = state.observe(row)
@@ -157,7 +185,8 @@ def replay_features(race: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
             for h in HORIZONS:
                 if lap + h > int(race["laps"]):
                     continue
-                f = state.features(h, int(race["laps"]), field_delta)
+                f = state.features(h, int(race["laps"]), field_delta, field_pace, field_spread)
+                f.update(condition_features(row, state.previous_conditions, field_laps))
                 features.append(dict(f, round=int(race["round"]), driver=row["driver"],
                                      lap=lap, target_lap=lap+h, segment=state.segment,
                                      compound=row["compound"], current_s=row["lap_time_s"]))
@@ -210,7 +239,26 @@ def fit_candidates(train: pd.DataFrame) -> dict:
         max_leaf_nodes=9, min_samples_leaf=60, l2_regularization=20.,
         learning_rate=.06, early_stopping=False, random_state=26)
     ridge = make_pipeline(StandardScaler(), Ridge(alpha=100.))
-    return {"boosted": boosted.fit(x, y), "ridge": ridge.fit(x, y)}
+    models = {"boosted": boosted.fit(x, y), "ridge": ridge.fit(x, y)}
+    # Separate feature contract keeps the original v1 predictions reproducible.
+    # Clipped TRAINING targets bound rare incident influence. Evaluation retains
+    # every eligible slow lap. No random lap split or validation-event tuning.
+    enriched = train[ENRICHED]
+    for name, loss, leaves, leaf_size in (("robust_mean", "squared_error", 9, 80),
+            ("robust_deep", "squared_error", 15, 100),
+            ("enriched_median", "absolute_error", 9, 80)):
+        model = HistGradientBoostingRegressor(loss=loss, max_iter=180,
+            max_leaf_nodes=leaves, min_samples_leaf=leaf_size, l2_regularization=30.,
+            learning_rate=.04, early_stopping=False, random_state=26)
+        models[name] = model.fit(enriched, y.clip(-4, 4))
+    models["extra_trees"] = ExtraTreesRegressor(n_estimators=160, max_depth=12,
+        min_samples_leaf=30, max_features=.85, n_jobs=2, random_state=26).fit(enriched, y.clip(-4, 4))
+    # Predeclared ablations, same training/selection protocol as the pace-only model.
+    for name, columns in MODEL_FEATURES.items():
+        models[name] = HistGradientBoostingRegressor(loss="squared_error", max_iter=180,
+            max_leaf_nodes=9, min_samples_leaf=80, l2_regularization=30.,
+            learning_rate=.04, early_stopping=False, random_state=26).fit(train[columns], y.clip(-4, 4))
+    return models
 
 
 def predict_candidates(models: dict, data: pd.DataFrame) -> dict[str, np.ndarray]:
@@ -223,9 +271,13 @@ def predict_candidates(models: dict, data: pd.DataFrame) -> dict[str, np.ndarray
                        + data["kalman_h"].to_numpy(float),
     }
     for name, model in models.items():
-        predictions[name] = current + model.predict(data[FEATURES])
+        columns = MODEL_FEATURES.get(name, FEATURES if name in ("boosted", "ridge") else ENRICHED)
+        predictions[name] = current + model.predict(data[columns])
     # Fixed blend, not fitted on evaluation races; state smooths tree discontinuities.
     predictions["hybrid"] = .75 * predictions["boosted"] + .25 * predictions["state_space"]
+    predictions["mean_state_blend"] = .8*predictions["robust_mean"] + .2*predictions["state_space"]
+    predictions["mean_median_blend"] = .5*predictions["robust_mean"] + .5*predictions["enriched_median"]
+    predictions["conditions_blend"] = .5*predictions["conditions_model"] + .5*predictions["robust_mean"]
     return predictions
 
 

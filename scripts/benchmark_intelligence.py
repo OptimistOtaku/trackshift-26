@@ -10,6 +10,8 @@ import json
 import os
 from pathlib import Path
 import sys
+import tempfile
+import time
 
 # Keep small tabular fits from oversubscribing laptop CPUs.
 os.environ.setdefault("OMP_NUM_THREADS", "2")
@@ -19,14 +21,12 @@ sys.path.insert(0, str(ROOT / "src"))
 
 import numpy as np
 import pandas as pd
-from pitwall.intelligence import (HORIZONS, fit_candidates, interval_radius,
+from pitwall.intelligence import (CANDIDATES, HORIZONS, fit_candidates, interval_radius,
                                   load_replays, metrics, predict_candidates)
 
 OUT = ROOT / "artifacts/demo/intelligence"
 FIRST_TEST = 4
 HOLDOUT_START = 9
-CANDIDATES = ("persistence", "rolling_median", "recent_trend", "state_space",
-              "ridge", "boosted", "hybrid")
 
 
 def clean_json(obj):
@@ -44,8 +44,24 @@ def clean_json(obj):
 
 
 def write_json(path, obj):
-    path.write_text(json.dumps(clean_json(obj), allow_nan=False, separators=(",", ":")),
-                    encoding="utf-8")
+    # A same-directory replace prevents partial artifacts and avoids transient
+    # OneDrive sharing locks on direct truncation of existing large JSON files.
+    payload = json.dumps(clean_json(obj), allow_nan=False, separators=(",", ":"))
+    with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent,
+                                     suffix=".tmp", delete=False) as handle:
+        handle.write(payload)
+        temporary = Path(handle.name)
+    try:
+        for attempt in range(5):
+            try:
+                os.replace(temporary, path)
+                break
+            except OSError:
+                if attempt == 4:
+                    raise
+                time.sleep(.2*(attempt+1))
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def select_model(prior: pd.DataFrame) -> str:
@@ -157,10 +173,19 @@ def main():
     manifest = [{"path": str(p.relative_to(ROOT)).replace("\\", "/"),
                  "sha256": hashlib.sha256(p.read_bytes()).hexdigest()}
                 for p in sorted((ROOT / "artifacts/demo/replay").glob("R*.json"))]
-    report = dict(version=1, task="same-stint green-flag lap-time forecast",
+    development_scores = {name: development.assign(error=(development[name]-development.actual_s)**2)
+        .groupby(["round", "horizon"]).error.mean().mean() for name in CANDIDATES}
+    report = dict(version=3, task="same-stint green-flag lap-time forecast",
+        environmental_ablation={name: dict(development_mse=development_scores[name],
+            **metrics(holdout.actual_s, holdout[name])) for name in
+            ("robust_mean", "weather_model", "traffic_model", "conditions_model", "conditions_blend")},
+        condition_coverage=dict(weather=float(1-data.weather_missing.mean()),
+            traffic=float(1-data.traffic_missing.mean())),
         selection="equal event/horizon MSE on R04-R08; architecture frozen for R09-R12",
         training="expanding earlier races only; coefficients refit before each event",
         selected_model=selected_holdout, baseline=baseline,
+        candidate_development_mse=development_scores,
+        previous_model="hybrid", previous_model_rmse_s=metrics(holdout.actual_s, holdout.hybrid)["rmse_s"],
         holdout_rounds=sorted(holdout["round"].unique().tolist()),
         **model_metric, baseline_rmse_s=base_metric["rmse_s"],
         improvement_pct=100*(1-model_metric["rmse_s"]/base_metric["rmse_s"]),
@@ -171,6 +196,7 @@ def main():
             baseline_rmse_s=metrics(g.actual_s, g[baseline])["rmse_s"])
             for rnd, g in holdout.groupby("round")],
         limitations=["Only four final evaluation races; interval coverage is empirical.",
+            "R09-R12 were inspected in v1. This is a development-selected revision on a reused evaluation set, not a new blind test.",
             "Forecasts assume no pit stop or neutralisation during the horizon.",
             "Lap-synchronous snapshots are not exact live wall-clock timing.",
             "Pace trend includes fuel, traffic, track and tyre effects; it is not measured wear.",

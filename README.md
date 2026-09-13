@@ -1,5 +1,96 @@
 # PITWALL
 
+The primary pace forecast is now timestamp-aligned: **0.746s RMSE vs 0.844s
+persistence (11.6% lower)** across 6,831 scored forecasts on the reused R09–R12
+races. Per-driver forecasts and their verified outcomes follow the position clock.
+See [the current category assessment](docs/CATEGORY_ASSESSMENT.md) and
+`artifacts/demo/clock/report.json`. Rebuild: `python scripts/benchmark_clock.py`.
+The older lap-synchronous benchmark and conditional strategy views remain labelled
+separately; physical tyre wear and optimal full-race pit strategy remain unvalidated.
+
+## Immersive control panel — 13 September
+
+The circuit now replays timestamped FastF1 positions with a shared clock, driver
+labels, speed, gear, throttle, braking and a quality-gated physical-gap estimate.
+Use **Focus console**, then **Play**. **Plan stop & rejoin** connects compound
+comparisons, observed pit loss, projected rejoin neighbours, short-horizon entry
+scenarios and named undercut targets. Rival-forecast arithmetic is inspectable.
+
+See [product controls, data sources and calculation boundaries](docs/PRODUCT_OPERATIONS.md).
+The model's completed-lap snapshots and the position clock are labelled separately;
+this remains historical replay, not a validated wall-clock live-inference service.
+
+## Jury-ready demonstration
+
+Run `python scripts/serve_demo.py --port 8001`, open
+http://127.0.0.1:8001/demo_fallback/ and click **Present to jury**.
+The centre console now demonstrates tyre science, a locked forecast with actual
+and baseline verification, an interactive undercut cost breakdown, and complete
+benchmark results. The circuit view shows three forecast horizons and the latest
+resolved error. The four-chapter tour includes presenter prompts.
+
+- [90-second click sequence and jury answers](docs/JURY_PRESENTATION.md)
+- [Final six-slide PowerPoint](artifacts/submission/PITWALL_Jury_Final.pptx)
+- [Offline demo package](artifacts/submission/PITWALL_Offline_Demo.zip)
+- [Browser presentation](demo_fallback/pitch.html) (serve over HTTP)
+
+Viewing the extracted package requires only Python 3.10+: no model download,
+npm or cloud service. It replays precomputed historical predictions. Build the
+package with `python scripts/package_jury.py`.
+
+## Race console and environmental audit — 12 September
+
+The demo now has a motorsport console: session controls and the headline forecast
+on the left, animated circuit replay in the centre, race engineer on the right,
+and detailed telemetry on scroll. Weather, dirty-air exposure and sensor coverage
+are shown at the selected lap. Car motion is schematic, not live GPS.
+
+The replay traffic pipeline now converts FastF1 position units correctly, rejects
+corrupt pre-race geometry and requires adequate lap coverage. Weather/traffic
+ablation expands the comparison to **17 pace approaches and 8 stop specifications**.
+The deployed pace model remains 0.743 s RMSE: it won development selection.
+The conditions blend's 0.734 s on reused evaluation races is a research result,
+not grounds to change the model after looking at that set. Its sensor inputs are
+visible to the engineer; the selected pace model does not directly use them.
+
+See [the readiness review, winning points and remaining work](docs/HACKATHON_READINESS.md).
+To refresh sensors first: `python scripts/export_conditions.py` (offline cache required).
+
+## Current build: opponent-aware strategy intelligence
+
+PITWALL now forecasts **time at risk against a rival** and prices how much warm-up,
+service delay and rejoin traffic an attack can tolerate. Open **Strategy edge** in
+the demo. The race cursor controls all inputs; future outcomes appear only after
+their target lap has completed.
+
+| Chronological evaluation, R09–R12 | Result |
+|---|---|
+| Future lap-time RMSE, 6,831 forecasts | **0.743 s**, 12.0% below persistence; previous model 0.752 s |
+| Relative-time RMSE, 3,128 rival forecasts | **2.197 s**, 10.0% below rolling-median extrapolation |
+| Precision of alerts for losing >2 seconds | **78.1%**, versus 71.3%; recall 65.9% versus 66.7% |
+| Pre-stop pace-step RMSE, 107 stops | **0.757 s**, versus 0.761 s for the mean; small difference |
+
+Seventeen pace approaches, eight stop-model specifications and eight relative-time
+approaches are compared. Selection uses development races, with fitting on earlier
+events only. R09–R12 were previously inspected: these are **reused evaluation races**,
+not a new blind test. The gain is demonstrated in forecasting and alert quality;
+race seconds saved or places won by an intervention have **not** been established.
+
+```bash
+python scripts/build_intelligence.py   # full model comparison, exports, contract tests
+python scripts/serve_demo.py --port 8000
+```
+
+Open http://127.0.0.1:8000/demo_fallback/ and select **Strategy lab**.
+See [the proof and demo script](docs/STRATEGY_EDGE.md). Machine-readable evidence:
+`artifacts/demo/intelligence/{report,decision_report,battle_report}.json`.
+The sections below describe the earlier degradation-identification research and
+retrospective pit-step model; their metrics answer a different question and their
+artifacts predate the latest replay traffic correction. They have not been
+regenerated as part of this chronological forecasting revision.
+
+---
+
 Tyre degradation intelligence for Formula 1 — separating what a tyre actually costs you from
 the fuel, traffic and track evolution that hide it.
 

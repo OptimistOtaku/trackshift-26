@@ -121,20 +121,25 @@
   @media(max-width:1000px){.intel-layout{grid-template-columns:1fr}.grid[style]{grid-template-columns:1fr!important}}
   @media(max-width:600px){main{padding:14px}header{padding:15px}nav{padding:0 8px}.card{padding:12px}td,th{padding:5px 4px;font-size:11px}.scrub select{max-width:100%}.head-nums{margin-left:0}.hero{font-size:35px}}
 </style>
+<link rel="stylesheet" href="console.css">
+<link rel="stylesheet" href="mission.css">
+<link rel="stylesheet" href="operations.css"><link rel="stylesheet" href="live-console.css?v=tyre-response-8">
 </head>
 <body>
 
 <header>
-  <h1>PITWALL</h1>
-  <span class="tag">Tyre degradation intelligence &middot; 2026 season</span>
+  <h1><span class="brand-mark" aria-hidden="true">///</span> PITWALL<span class="brand-dot">.</span></h1>
+  <span class="tag">RACE INTELLIGENCE SYSTEM<br><b>TRACKSHIFT / 2026</b></span>
   <div class="head-nums" id="headnums"></div>
 </header>
 
 <nav id="nav">
-  <button data-t="undercut" aria-selected="false">Undercut</button>
-  <button data-t="signflip" aria-selected="false">The sign flip</button>
-  <button data-t="replay" aria-selected="true">Race replay</button>
-  <button data-t="validation" aria-selected="false">Validation</button>
+  <button class="tyre-tab tyre-tab-soft" data-t="replay" aria-selected="true"><i class="compound-tab-mark" aria-hidden="true">S</i><span>01 / Race console</span></button>
+  <button class="tyre-tab tyre-tab-medium" data-t="battle" aria-selected="false"><i class="compound-tab-mark" aria-hidden="true">M</i><span>02 / Strategy lab</span></button>
+  <button class="tyre-tab tyre-tab-medium" data-t="undercut" aria-selected="false"><i class="compound-tab-mark" aria-hidden="true">M</i><span>03 / Undercut</span></button>
+  <button class="tyre-tab tyre-tab-hard" data-t="signflip" aria-selected="false"><i class="compound-tab-mark" aria-hidden="true">H</i><span>04 / Tyre science</span></button>
+  <button class="tyre-tab tyre-tab-hard" data-t="validation" aria-selected="false"><i class="compound-tab-mark" aria-hidden="true">H</i><span>05 / Model evidence</span></button>
+  <span class="nav-status"><i></i> HISTORICAL REPLAY</span>
 </nav>
 
 <main>
@@ -182,6 +187,60 @@
     </div>
   </section>
 
+  <section id="s-battle" hidden>
+    <div class="eyebrow">Opponent-aware race intelligence</div>
+    <h2>Know the time at risk. Set the price of an attack.</h2>
+    <p class="sub">Predict the relative time to the car ahead, then test whether fresh tyres can cover
+      the gap, warm-up and rejoin traffic. The forecasts are tested on recorded races;
+      the attack is a conditional scenario.</p>
+    <p id="b-context" class="note"></p>
+    <div id="b-proof" class="stat"></div>
+    <p id="b-defence" class="cost" hidden></p>
+    <div class="grid">
+      <div class="card">
+        <div class="eyebrow">Team inputs / attack costs</div>
+        <p class="note">Driver and lap follow Race replay. Enter the timing-screen gap; position alone
+          does not establish proximity, especially for lapped cars.</p>
+        <label for="b-gap">Gap to this rival <span class="val" id="b-gap-v"></span></label>
+        <input id="b-gap" type="range" min="0" max="10" step=".1" value="1.5">
+        <label for="b-warmup">Total warm-up loss <span class="val" id="b-warmup-v"></span></label>
+        <input id="b-warmup" type="range" min="0" max="4" step=".1" value=".7">
+        <label for="b-traffic">Total rejoin traffic loss <span class="val" id="b-traffic-v"></span></label>
+        <input id="b-traffic" type="range" min="0" max="6" step=".1" value="0">
+        <label for="b-service">Our additional service time <span class="val" id="b-service-v"></span></label>
+        <input id="b-service" type="range" min="-2" max="4" step=".1" value="0">
+        <label for="b-decay">Extra net degradation per lap <span class="val" id="b-decay-v"></span></label>
+        <input id="b-decay" type="range" min="-.2" max=".3" step=".01" value="0">
+        <fieldset style="border:1px solid var(--line);margin:20px 0 0">
+          <legend class="note">Available, legal compounds — confirm your inventory</legend>
+          <label><input type="checkbox" id="b-hard" checked> HARD</label>
+          <label><input type="checkbox" id="b-medium" checked> MEDIUM</label>
+          <label><input type="checkbox" id="b-soft"> SOFT</label>
+        </fieldset>
+      </div>
+      <div>
+        <div class="card" style="border-top:2px solid var(--accent)">
+          <div class="eyebrow">Relative time at risk</div>
+          <div id="b-loss" class="hero">—</div><p id="b-range"></p>
+          <div id="b-chart"></div><p id="b-interpretation" class="note"></p>
+        </div>
+        <div class="card" style="margin-top:20px">
+          <div class="eyebrow">Attack budget / response stress test</div>
+          <h3 id="b-verdict" style="margin-top:0">Waiting for a calibrated scenario</h3>
+          <div style="overflow:auto"><table><thead><tr><th>Compound</th><th>Rival response</th>
+            <th>Extra traffic budget</th><th>Stress range</th></tr></thead><tbody id="b-plans"></tbody></table></div>
+          <p id="b-plan-note" class="cost"></p>
+          <p class="note">Both cars must stop. Pit transit cancels; unequal service costs remain.
+            Uncertainty combines earlier-race pace-step and relative-time errors conservatively.
+            This range has no joint coverage guarantee. It does not predict finishing position.</p>
+        </div>
+      </div>
+    </div>
+    <h3>Evidence available at this lap</h3><p id="b-resolved" class="sub"></p>
+    <div style="overflow:auto"><table><thead><tr><th>Issued</th><th>Resolved</th><th>Rival</th><th>Predicted loss</th><th>Observed loss</th></tr></thead>
+      <tbody id="b-history"></tbody></table></div>
+  </section>
+
   <!-- ============================ 2. SIGN FLIP ============================= -->
   <section id="s-signflip" hidden>
     <h2>The obvious fit says tyres get faster as they wear. It&rsquo;s fuel.</h2>
@@ -205,32 +264,115 @@
 
   <!-- ============================ 3. REPLAY ================================ -->
   <section id="s-replay">
-    <div class="eyebrow">Historical race / live prediction boundary</div>
-    <h2>The next lap, before it happens.</h2>
-    <p class="sub">Advance the 2026 race one lap at a time. The estimator sees the completed
-      laps; the chart reveals whether its earlier predictions were right. Forecasts assume this
-      stint continues under green flags.</p>
+    <div class="console-heading"><div><div class="eyebrow">PIT WALL / OPERATIONS</div>
+      <h2>Every lap is a decision.</h2></div><div class="console-actions"><button id="c-run">Run live evaluation ▶</button><button id="o-focus">Focus console ↗</button><button id="j-start">Guided walkthrough <span>↗</span></button></div></div>
+    <div id="jury-guide" hidden>
+      <div class="jury-guide-head"><span class="eyebrow">GUIDED DEMO / <b id="j-step-count">01 / 04</b></span><button id="j-exit" aria-label="Exit jury walkthrough">Exit ×</button></div>
+      <div class="jury-guide-body"><div><h3 id="j-title"></h3><p id="j-script"></p></div><div class="jury-guide-controls"><button id="j-back">← Back</button><button id="j-next">Next chapter →</button></div></div>
+      <div id="j-chapters"><button data-chapter="0">01 / Tyre science</button><button data-chapter="1">02 / Predict & verify</button><button data-chapter="2">03 / Price the undercut</button><button data-chapter="3">04 / Prove the advantage</button></div>
+    </div>
+    <nav class="decision-flow" aria-label="Tyre to rejoin workflow"><div><span class="eyebrow">LIVE DECISION SEQUENCE</span><span id="flow-context">Waiting for driver clock</span></div><div class="flow-steps"><button data-flow="tyre-response"><b>01</b> Tyre condition <span>→</span></button><button data-flow="adaptive-live"><b>02</b> Forecast pace <span>→</span></button><button data-flow="operations"><b>03</b> Plan the stop <span>→</span></button><button data-flow="rejoin-stage"><b>04</b> Rejoin &amp; attack <span>↗</span></button></div></nav>
+    <div class="race-console" id="race-workspace" tabindex="-1">
+      <aside class="control-rail">
+        <div class="panel-caption"><span>01 / SESSION CONTROL</span><span class="tiny-dot"></span></div>
+        <label for="r-race">Grand Prix</label><select id="r-race"></select>
+        <label for="i-driver">Driver channel</label><select id="i-driver" aria-label="Forecast driver"></select>
+        <div class="lap-heading"><span id="r-lapno">lap —</span><span id="c-progress">—</span></div>
+        <input type="range" id="r-lap" min="1" max="71" value="25" aria-label="Replay lap">
+        <div class="transport"><button id="c-prev" aria-label="Previous lap">←</button><button id="r-play" type="button">Play</button><button id="c-next" aria-label="Next lap">→</button>
+          <select id="c-speed" aria-label="Playback speed"><option value="1" selected>1×</option><option value="10">10×</option><option value="30">30×</option></select></div>
+        <label class="replay-loop"><input type="checkbox" id="c-loop" checked> Loop recorded race</label><div class="primary-output"><div class="eyebrow" id="c-pace-label">CLOCK FORECAST / WAITING</div>
+          <div id="c-pace">—<small>s</small></div><p id="c-interval">Waiting for race data</p>
+          <p class="micro" id="clock-basis"></p>
+          <div class="output-rule"><span>Latest timing position</span><strong id="c-position">—</strong></div>
+          <div class="output-rule"><span>Clock pace trend</span><strong id="c-trend">—</strong></div>
+          <p class="micro">Combined pace trend, including fuel, tyres and traffic.</p>
+        </div>
+        <div class="tyre-readout"><div class="tyre-icon" id="c-tyre-icon"><span id="c-compound-letter">—</span></div>
+          <div><span class="micro">STINT AT DRIVER CLOCK</span><strong id="c-compound">—</strong><span id="c-age">— laps on tyre</span></div></div>
+        <div id="o-tyre-value" class="tyre-value"></div><p class="micro">Estimated pace recovered by fresh tyres, not physical wear percentage.</p>
+        <a class="tyre-audit-link" href="#tyre-response">Inspect tyre response ↓</a>
+        <button class="strategy-link" id="c-strategy">Plan stop &amp; rejoin <span>↓</span></button>
+      </aside>
+      <div class="circuit-panel">
+        <div class="circuit-title"><div><div class="eyebrow">02 / CIRCUIT REPLAY</div><h3 id="c-event">Loading circuit</h3></div><span id="r-flag"></span></div>
+        <div class="mission-tabs" role="group" aria-label="Centre console view"><button class="tyre-tab tyre-tab-soft" data-view="circuit" aria-pressed="true"><i class="compound-tab-mark" aria-hidden="true">S</i><span>Circuit</span></button><button class="tyre-tab tyre-tab-soft" data-view="forecast" aria-pressed="false"><i class="compound-tab-mark" aria-hidden="true">S</i><span>Forecast</span></button><button class="tyre-tab tyre-tab-medium" data-view="undercut" aria-pressed="false"><i class="compound-tab-mark" aria-hidden="true">M</i><span>Undercut</span></button><button class="tyre-tab tyre-tab-hard" data-view="science" aria-pressed="false"><i class="compound-tab-mark" aria-hidden="true">H</i><span>Tyre science</span></button><button class="tyre-tab tyre-tab-hard" data-view="proof" aria-pressed="false"><i class="compound-tab-mark" aria-hidden="true">H</i><span>Results</span></button></div>
+        <div id="mission-track">
+        <div class="feed-header"><div><span id="f-source">POSITION FEED</span><b id="f-clock">—</b></div><span id="f-lap-basis">ANALYSIS LAP —</span></div>
+        <div id="m-duel" class="mission-duel"></div><div id="live-chain" class="live-chain"></div>
+        <div class="circuit-stage"><div id="track-audit" class="track-audit"></div><svg id="c-track" viewBox="0 0 800 490" role="group" aria-label="Reconstructed race motion on measured circuit geometry; select a car to inspect its forecast"></svg>
+          <div class="map-stamp"><span id="c-track-length">—</span><span>MEASURED CIRCUIT GEOMETRY</span></div>
+          <div class="map-key"><i></i><span id="c-follow">SELECTED DRIVER</span></div>
+        </div>
+        <div class="feed-telemetry"><div><strong id="f-speed">—</strong><span>KM/H</span></div><div><strong id="f-gear">—</strong><span>GEAR</span></div><div class="pedal"><span>THROTTLE <b id="f-throttle-value">—</b></span><i><em id="f-throttle"></em></i><span>BRAKE <b id="f-brake-value">—</b></span><i><em id="f-brake"></em></i></div><div class="feed-gap"><span>RECONSTRUCTED CAR AHEAD / APPROX. GAP</span><strong id="f-gap">—</strong></div></div>
+        <div class="replay-caption"><span id="c-motion">Ⅱ REPLAY PAUSED</span><span id="f-age">Waiting for telemetry</span></div><p class="feed-note">Recorded race replay · speed-driven motion constrained to the measured circuit, with gradual position corrections and a 1s display buffer. The selected car’s trail shows its last 4 seconds of reconstructed movement. Reconstructed gaps are approximate; strategy uses timestamped lap timing, not animated coordinates.</p>
+        <section id="adaptive-live" class="adaptive-live" tabindex="-1" aria-label="Live adaptive forecast"><div class="adaptive-heading"><div><span class="eyebrow">02 / ADAPTIVE PACE FORECAST</span><h3 id="a-next">Waiting for timing</h3></div><span id="a-live-status" class="live-status">OBSERVING</span></div><div class="forecast-transport"><button id="a-play">Play race &amp; forecast</button><button id="a-realtime" aria-pressed="true">Real time 1×</button><button id="a-demo" aria-pressed="false">Watch comparison 10×</button></div><p id="a-readiness" class="forecast-readiness"></p><div id="a-comparison-score"></div><div id="a-chart"></div><div class="forecast-legend"><span class="issued">Predicted before lap</span><span class="observed">Observed at finish</span><span class="error-legend">Vertical gap = error</span></div><div class="lap-pulse" aria-hidden="true"><i id="a-progress"></i></div><p id="a-clock" class="forecast-clock"></p><div class="adaptive-controls"><button id="a-lock">Lock next lap for audit</button><button id="a-unlock" disabled>Release lock</button><button data-open="forecast">Audit +3 / +5 laps ↗</button></div><p id="a-ticket" class="audit-note"></p><button class="flow-next" data-flow="operations">Use this pace to plan the stop →</button></section>
+        <div id="m-horizons" class="mission-horizons"></div>
+        <div class="mission-prompt"><span id="m-last-result">Every forecast can be checked against a recorded lap.</span><button data-open="forecast">Predict & verify →</button></div>
+        <p id="live-chain-note" class="feed-note"></p><div id="live-results" class="live-results"></div><div id="clock-proof" class="clock-proof"></div>
+        </div>
+        <div id="mission-forecast" class="mission-view" hidden>
+          <div class="mission-heading"><div><span class="eyebrow">PREDICT → ADVANCE → VERIFY</span><h3>A forecast you can hold us to.</h3></div><select id="m-horizon" aria-label="Verification horizon"><option value="1">+1 lap</option><option value="3" selected>+3 laps</option><option value="5">+5 laps</option></select></div>
+          <div id="m-comparison-score"></div><div id="m-forecast-chart" aria-label="Live predicted versus observed lap pace"></div>
+          <div class="forecast-legend"><span class="issued">Predicted before lap</span><span class="observed">Observed at finish</span><span class="error-legend">Vertical gap = error</span></div><p id="m-clock" class="forecast-clock"></p>
+          <div class="witness-controls"><button id="m-lock">Lock for audit</button><button id="m-unlock" disabled>Release lock</button><button id="m-reveal" disabled>Run replay &amp; verify →</button></div>
+          <div id="m-ticket" class="forecast-ticket" aria-live="polite"></div>
+          <div id="m-session-score" class="session-score"></div>
+          <p class="mission-footnote">Exact driver-timestamp model. Pinning preserves a forecast for inspection; all next-lap predictions are verified automatically beside the circuit. A single example does not establish accuracy.</p>
+        </div>
+        <div id="mission-undercut" class="mission-view" hidden>
+          <div class="mission-heading"><div><span class="eyebrow">LIVE SCENARIO CALCULATION</span><h3>What can the attack afford?</h3></div><select id="m-compound" aria-label="Scenario tyre compound"><option>HARD</option><option>MEDIUM</option><option>SOFT</option></select></div>
+          <div class="mission-assumptions"><label>Rival responds<select id="m-response" aria-label="Scenario rival response"><option value="3">After 3 laps</option><option value="5">After 5 laps</option></select></label><label>Projected no-stop deficit <output id="m-gap-value"></output><input id="m-gap" aria-label="Scenario gap" type="range" min="0" max="10" step="0.1" value="1.5"></label><label>Rejoin traffic loss <output id="m-traffic-value"></output><input id="m-traffic" aria-label="Scenario traffic loss" type="range" min="0" max="6" step="0.1" value="0"></label></div>
+          <div class="scenario-actions"><span>Rival deficit comes from clock forecasts; future traffic is an assumption.</span><button id="m-stress">Add 2s traffic</button><button id="m-reset-costs">Reset costs</button></div>
+          <div id="m-waterfall"></div><div id="m-verdict" aria-live="polite"></div>
+          <p class="mission-footnote">Both cars stop: shared pit transit cancels. Warm-up, service and extra degradation follow Strategy lab. This is a conditional time margin, not a validated overtake prediction.</p>
+        </div>
+        <div id="mission-science" class="mission-view" hidden></div>
+        <div id="mission-proof" class="mission-view" hidden><p>Loading the model scoreboards…</p></div>
+        <div class="conditions-strip">
+          <div><span>TRACK TEMP</span><strong id="c-track-temp">—</strong></div>
+          <div><span>AIR TEMP</span><strong id="c-air-temp">—</strong></div>
+          <div><span>DIRTY AIR &lt;1s</span><strong id="c-traffic">—</strong></div>
+          <div><span>MEDIAN GAP</span><strong id="c-gap">—</strong></div>
+        </div>
+      </div>
+      <aside class="engineer-rail">
+        <div class="panel-caption"><span>03 / RACE ENGINEER</span><span class="radio-bars" aria-hidden="true">▂ ▆ ▃ █ ▅</span></div>
+        <div class="engineer-call"><div class="eyebrow">CLOCK-ALIGNED DRIVER BRIEFING</div><h3 id="c-call">Reading the race.</h3>
+          <p id="clock-brief"></p><details class="legacy-context"><summary>Strategy-lap context</summary><p id="i-engineer" aria-live="polite"></p><p class="micro" id="i-engineer-source"></p></details></div>
+        <div class="rival-readout"><div class="eyebrow">RIVAL / BOTH-STOP MARGIN</div><div id="c-rival">—</div><p id="c-risk">Awaiting a supported forecast.</p></div>
+        <div id="o-tactical" class="tactical-readout"></div>
+        <div class="signal-list"><div class="eyebrow">SIGNAL INTEGRITY / DRIVER CLOCK</div>
+          <div><span>Weather feed</span><b id="c-weather-quality">—</b></div>
+          <div><span>Traffic coverage</span><b id="c-traffic-quality">—</b></div>
+          <div><span>Forecast basis</span><b id="c-model-status">—</b></div>
+          <p class="micro">Carcass temperature, tyre pressure and surface wear are not in this feed.</p></div>
+      </aside>
+    </div>
+    <section id="tyre-response" class="operations tyre-response" tabindex="-1">
+      <div class="ops-heading"><div><span class="eyebrow">01 / TYRE CONDITION</span><h2>Read the set. Understand the pace loss.</h2></div><button class="flow-next" data-flow="adaptive-live">Next: forecast pace →</button></div>
+      <div id="t-model-score" class="tyre-model-score"></div><p class="ops-note tyre-score-note">Predicting pace recovered across a tyre change. Four reused evaluation races; the main model’s event-bootstrap improvement interval includes zero. This is observational recovery, not measured rubber wear.</p><p id="tyre-age-basis" class="age-basis"></p>
+      <div class="tyre-audit-grid"><div class="ops-block"><div id="t-live" class="tyre-live"></div><p class="ops-note" id="t-context"></p><p class="ops-note">Personal early-stint reference adjusted for field pace. A degradation warning signal; fuel, traffic and driver effects remain.</p></div><div class="ops-block"><label class="eyebrow" for="t-stop">RESOLVED STOP / SELECT A WITNESS</label><select id="t-stop" aria-label="Resolved tyre-change evidence"></select><div id="t-observed"></div></div></div>
+      <div id="t-model-inputs" class="tyre-model-inputs"></div><details class="ops-source"><summary>Tyre-specific evidence and model challenge</summary><div id="t-proof"></div><div id="t-research"></div></details>
+    </section>
+    <section id="operations" class="operations" tabindex="-1">
+      <div class="ops-heading"><div><span class="eyebrow">03 / PLAN THE STOP</span><h2 id="o-call">Reading the strategy.</h2></div><span id="o-status">CONDITIONAL STRATEGY</span></div>
+      <div class="ops-controls"><label>FIT COMPOUND<select id="o-compound"><option>HARD</option><option>MEDIUM</option><option>SOFT</option></select></label><label>FULL PIT LOSS / S<input id="o-pitloss" type="number" min="0" max="80" step="0.1" value="22"></label><label>EXTRA REJOIN LOSS / S<input id="o-traffic" type="number" min="0" max="20" step="0.1" value="0"></label><label>NEW-TYRE DECAY / S PER LAP<input id="o-decay" type="number" min="0" max="1" step="0.01" value="0"></label><fieldset><legend>AVAILABLE SETS / CONFIRM INVENTORY</legend><label><input id="o-hard" type="checkbox" checked> H</label><label><input id="o-medium" type="checkbox" checked> M</label><label><input id="o-soft" type="checkbox" checked> S</label></fieldset></div>
+      <div class="ops-settings-note"><span id="o-pit-source"></span><button id="o-auto">Use observed pit loss</button><span>Traffic loss &amp; decay are scenario assumptions.</span></div>
+      <div class="ops-grid"><div class="ops-block"><span class="eyebrow">03 / COMPARE THE TYRE RESPONSE</span><h3>Compare the available compounds.</h3><div id="o-choices"></div><div id="o-recovery" class="recovery"></div><p class="ops-note" id="o-recovery-note"></p></div><div class="ops-block" id="rejoin-stage" tabindex="-1"><span class="eyebrow">04 / REJOIN &amp; ATTACK</span><h3>Price the pit lane. Inspect the queue.</h3><div id="o-rejoin"></div><h4>Next four entry scenarios</h4><div id="o-windows"></div><p class="ops-note">Short-horizon scenario ranking: avoid a projected gap below 2.5s, then prefer more five-lap benefit. Fixed tyre benefit, no future stops or safety cars assumed. This is not an optimal full-race pit window.</p></div></div>
+      <div class="ops-grid"><div class="ops-block"><span class="eyebrow">04 / UNDERCUT CHECK</span><h3>Make the rival comparison explicit.</h3><div id="o-targets"></div><button id="o-apply">Load these inputs into undercut calculator ↗</button><p class="ops-note" id="o-applied"></p></div><div class="ops-block"><span class="eyebrow">RADIO / DRIVER BRIEF</span><h3>A pace target with context.</h3><p id="o-driver-call"></p><p class="ops-note">Track and air temperatures and observed traffic are measured context. Carcass temperature, tyre pressure, actual fuel and setup are unavailable; no thermal-damage or remaining-life claim.</p></div></div>
+      <div class="flow-return"><span>Same driver. Same clock. Your compound and costs stay applied.</span><button data-flow="race-workspace">Return to live race ↑</button></div><details class="ops-source"><summary>Where do the rival forecast numbers come from?</summary><div id="o-provenance"></div></details>
+    </section>
+    <div class="telemetry-heading" id="telemetry"><div><div class="eyebrow">04 / DEEP TELEMETRY</div><h2>The evidence behind the call.</h2></div><span>SCROLL TO INVESTIGATE ↓</span></div>
     <div class="stat" id="i-score"></div>
-    <div class="scrub">
-      <select id="r-race" style="width:auto"></select>
-      <span class="lapno" id="r-lapno">lap &mdash;</span>
-      <input type="range" id="r-lap" min="1" max="71" value="25" aria-label="Replay lap">
-      <button id="r-play" type="button">Play</button>
-      <span id="r-flag"></span>
+    <div class="telemetry-grid">
+      <div class="card"><div class="intel-heading"><div><div class="eyebrow">Adaptive pace forecast</div><h3 id="i-title">Select a driver</h3></div></div>
+        <div id="i-chart"></div><p id="i-live-clock" class="forecast-clock"></p><p class="note" id="i-basis"></p>
+        <div class="forecast-legend"><span class="issued">Predicted before lap</span><span class="observed">Observed at finish</span><span class="error-legend">Vertical gap = error</span></div>
+        <p class="note" id="i-trend"></p></div>
+      <div class="card"><div class="eyebrow">Environmental context</div><h3>What the tyre is facing.</h3><div id="c-environment"></div><p class="note">Track temperature is measured. Tyre core temperature is unavailable. Dirty air describes observed exposure, not a measured tyre-temperature penalty.</p><div id="c-conditions-evidence"></div></div>
     </div>
-    <div class="intel-layout">
-      <div class="card"><div class="intel-heading"><div><div class="eyebrow">Adaptive pace forecast</div>
-        <h3 id="i-title">Select a driver</h3></div><select id="i-driver" aria-label="Forecast driver"></select></div>
-        <div id="i-chart"></div><p class="note" id="i-basis"></p>
-        <div class="lg"><span><i style="border-color:#e8e9ed"></i>observed</span>
-          <span><i style="border-color:#3fa7dc"></i>forecast</span>
-          <span><i style="border-color:#9bcced"></i>resolved one-lap predictions</span></div>
-      </div>
-      <div class="card engineer"><div class="eyebrow">Race Engineer</div>
-        <h3>What matters this lap.</h3><p id="i-engineer" aria-live="polite"></p>
-        <p class="note" id="i-engineer-source"></p><p class="note" id="i-trend"></p>
-      </div>
-    </div>
+    <div class="telemetry-heading compact"><h3>Timing tower</h3><span>COMPLETED LAPS ONLY</span></div>
     <div class="grid" style="grid-template-columns:1fr minmax(260px,330px)">
       <div class="card">
         <table>
@@ -251,6 +393,7 @@
   <section id="s-validation" hidden>
     <h2>Chronological validation</h2>
     <div id="i-validation"></div>
+    <div id="b-validation"></div>
     <h3>Earlier pit-step research: leave-one-event-out</h3>
     <p class="sub">Every point is one real pit stop, scored by a model that never saw its
       event. Ground truth is the step in pace across the stop: tyre age resets, fuel does not,
@@ -274,6 +417,16 @@
   Fallback build: no framework, no network.
 </footer>
 
+<script src="intelligence.js?v=tyre-response-8"></script>
+<script src="battle.js"></script>
+<script src="console.js?v=tyre-response-8"></script>
+<script src="evidence.js"></script>
+<script src="mission.js?v=tyre-response-8"></script>
+<script src="strategy-engine.js"></script>
+<script src="motion-engine.js"></script><script src="live-strategy.js"></script><script src="racefeed.js"></script>
+<script src="operations.js?v=tyre-response-8"></script>
+<script src="clock-forecast.js?v=tyre-response-8"></script>
+<script src="recovery.js?v=tyre-response-8"></script><script src="live-operations.js?v=tyre-response-8"></script><script src="adaptive-live.js?v=tyre-response-8"></script>
 <script>
 /* ===================================================================== *
  *  Data.  One fetch of index + model up front; races load on demand.
@@ -287,7 +440,7 @@ let IDX, MODEL, DEG;
 const raceCache = new Map();
 
 async function getJSON(p){
-  const r = await fetch(BASE + p);
+  const r = await fetch(BASE + p + '?v=tyre-response-8', {cache:'no-store'});
   if(!r.ok) throw new Error(`${p} → HTTP ${r.status}`);
   return r.json();
 }
@@ -423,6 +576,7 @@ let RRACE = null, RREPLAY = null, RINTEL = null, replayLoad = 0;
 
 function initReplay(){
   const rs = $('#r-race');
+  if(rs.options.length) return;
   IDX.races.forEach(r => rs.add(new Option(`R${r.round} · ${r.event}`, r.round)));
   rs.value = IDX.races.some(r => r.round === 11) ? 11 : IDX.races[0].round;
   rs.onchange = loadReplay;
@@ -430,14 +584,21 @@ function initReplay(){
   loadReplay();
 }
 async function loadReplay(){
+  if(playback) $('#r-play').click();
+  clearTimeout(engineerTimer);++engineerRequest;if(engineerAbort)engineerAbort.abort();
+  RREPLAY = RRACE = RINTEL = null;
+  clearConsole('Loading recorded race data…');
   const rnd = +$('#r-race').value;
   const requestId = ++replayLoad;
   $('#r-rows').innerHTML = `<tr><td colspan="6" class="l">loading…</td></tr>`;
   try{
     // Unfiltered feed for the scrubber (zero blank laps); races/ for the real stops.
-    const loaded = await Promise.all([race(rnd, 'replay'), race(rnd, 'races'), race(rnd, 'intelligence')]);
+    const loaded = await Promise.all([race(rnd, 'replay'), race(rnd, 'races'), race(rnd, 'intelligence'), race(rnd, 'motion').catch(()=>null), race(rnd, 'clock').catch(()=>null), race(rnd, 'recovery').catch(()=>null), race(rnd, 'decision-clock').catch(()=>null)]);
     if(requestId !== replayLoad) return;
     [RREPLAY, RRACE, RINTEL] = loaded;
+    setRaceFeed(loaded[3]);
+    RCLOCK=loaded[4];
+    RRECOVERY=loaded[5];RPITCLOCK=loaded[6];clockPaintKey='';
     const selector = $('#i-driver'), previous = selector.value;
     selector.replaceChildren(...RREPLAY.drivers.map(d => new Option(d,d)));
     selector.value = RREPLAY.drivers.includes(previous) ? previous : (RREPLAY.drivers.includes('NOR') ? 'NOR' : RREPLAY.drivers[0]);
@@ -445,6 +606,7 @@ async function loadReplay(){
     if(requestId !== replayLoad) return;
     RREPLAY = RRACE = RINTEL = null;
     $('#r-rows').innerHTML = `<tr><td colspan="6" class="l">could not load: ${e.message}</td></tr>`;
+    clearConsole('Race data unavailable. Select another event or reload.');
     return;
   }
   const sl = $('#r-lap');
@@ -471,7 +633,7 @@ function drawReplay(){
     .sort();
   $('#r-flag').innerHTML = bad.length
     ? `<span class="flag ${bad.includes('5') ? 'f-red' : 'f-sc'}">${
-        bad.map(c => codes[c] || c).join(' · ').toUpperCase()}</span>` : '';
+        bad.map(c => codes[c] || c).join(' · ').toUpperCase()}</span>` : '<span class="flag f-green">GREEN FLAG</span>';
 
   if(!rows.length){        // must never happen on the replay feed, but the guard is free
     $('#r-rows').innerHTML = `<tr><td colspan="6" class="l">No timing data for this lap</td></tr>`;
@@ -480,7 +642,7 @@ function drawReplay(){
       const c = r.compound || 'none';
       const snapshot = RINTEL?.snapshots.find(s => s.lap === L && s.driver === r.driver);
       const buys = snapshot?.forecasts.find(f => f.horizon === 1)?.pace_s;
-      return `<tr class="${snapshot ? '' : 'dirty'}">
+      return `<tr data-driver="${r.driver}" class="${snapshot ? '' : 'dirty'}">
         <td>${r.position != null ? int(r.position) : '—'}</td>
         <td class="l">${r.driver}</td>
         <td class="l"><span class="pill c-${c}">${c === 'none' ? '—' : c.slice(0,4)}</span></td>
@@ -558,9 +720,10 @@ const started = {};
 $('#nav').addEventListener('click', e => {
   const b = e.target.closest('button'); if(!b) return;
   [...$('#nav').children].forEach(x => x.setAttribute('aria-selected', x === b));
-  ['undercut','signflip','replay','validation'].forEach(t =>
+  ['undercut','signflip','replay','battle','validation'].forEach(t =>
     $('#s-' + t).hidden = t !== b.dataset.t);
   const t = b.dataset.t;
+  if(t !== 'replay' && playback) $('#r-play').click();
   if(!started[t]){                      // load each surface once, on first view
     started[t] = true;
     if(t === 'replay') initReplay();
@@ -572,13 +735,7 @@ $('#nav').addEventListener('click', e => {
   try{
     [IDX, MODEL] = await Promise.all([getJSON('index.json'), getJSON('model.json')]);
     DEG = MODEL.degradation;
-    const h = IDX.headline;
-    $('#headnums').innerHTML = `
-      <div><b>PITWALL</b>chronological race intelligence</div>
-      <div><b>${fmt(h.calib_slope, 2)}</b>calibration slope</div>
-      <div><b>+${fmt(h.improvement_pct, 1)}%</b>vs season mean</div>
-      <div><b>${h.stops}</b>real pit stops</div>
-      <div><b>${h.events}</b>races</div>`;
+    $('#headnums').textContent = 'Loading validated forecast evidence…';
     initIntelligence();
     initReplay();
     started.replay = true;
@@ -595,6 +752,5 @@ $('#nav').addEventListener('click', e => {
   }
 })();
 </script>
-<script src="intelligence.js"></script>
 </body>
 </html>
