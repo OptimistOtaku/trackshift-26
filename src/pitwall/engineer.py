@@ -7,6 +7,7 @@ model returns deterministic commentary. No model or network is required on stage
 from __future__ import annotations
 
 import json
+import math
 import os
 from pathlib import Path
 from urllib.request import Request, urlopen
@@ -29,13 +30,35 @@ def build_facts(root: Path, rnd: int, lap: int, driver: str) -> list[dict]:
     facts = [dict(id="context", text=f"{driver}, lap {lap}: {state['compound']} tyres, "
                   f"{state['tyre_age']:.0f} laps old.")]
     forecast = next((f for f in state["forecasts"] if f["horizon"] == 3), state["forecasts"][0])
-    text = f"Continuing this stint under green flags, predicted lap {forecast['target_lap']} pace is {forecast['pace_s']:.2f} seconds"
+    text = f"Same stint, green flags: lap {forecast['target_lap']} forecast {forecast['pace_s']:.2f}s"
     if forecast["lower_s"] is not None:
-        text += f", with an empirical interval of {forecast['lower_s']:.2f} to {forecast['upper_s']:.2f} seconds"
+        text += f" (empirical range {forecast['lower_s']:.2f}–{forecast['upper_s']:.2f}s)"
     facts.append(dict(id="forecast", text=text + "."))
     trend = state["pace_trend_s_per_lap"]
     facts.append(dict(id="trend", text=f"The recent pace trend is {trend:+.3f} seconds per lap; "
                       "fuel, track and traffic also contribute, so this is not a pure wear measurement."))
+    temperature = row.get("track_temp_c")
+    close = row.get("frac_close")
+    observed = row.get("traffic_observed") and isinstance(close, (int, float)) and math.isfinite(close)
+    environment = (f"Track {temperature:.1f}°C. " if isinstance(temperature, (int, float))
+                   and math.isfinite(temperature) else "Track temperature unavailable. ")
+    environment += (f"Dirty air within 1s: {close:.0%} of observed lap samples. "
+                    if observed else "Traffic measurement unavailable. ")
+    environment += "Tyre core temperature is not measured."
+    facts.append(dict(id="conditions", text=environment))
+    battles = state.get("battles", [])
+    if battles:
+        battle = battles[-1]
+        text = (f"Against {battle['rival']}: {battle['predicted_loss_s']:+.2f}s relative loss "
+                f"over {battle['horizon']} green laps")
+        if battle.get("radius_s") is not None:
+            text += f" (range {battle['lower_s']:+.2f}–{battle['upper_s']:+.2f}s)"
+        facts.append(dict(id="battle",text=text+". Positive means losing time, not places."))
+    elif state.get("defence"):
+        battle = state["defence"][-1]
+        facts.append(dict(id="battle",text=f"The car behind, {battle['rival']}, is forecast to close "
+            f"{battle['predicted_closing_s']:+.2f} seconds over {battle['horizon']} laps of continued green running. "
+            "Negative means it falls back; this is not a pass probability."))
     scenario = state.get("stop_scenarios", {}).get("HARD")
     if scenario and scenario["supported"]:
         text = f"A HARD-tyre stop scenario estimates a {scenario['step_s']:+.2f} second-per-lap pace step"
@@ -67,7 +90,8 @@ def validate_selection(value: object, facts: list[dict]) -> list[str]:
 
 def commentary(facts: list[dict], *, use_llm: bool = True) -> dict:
     model = os.environ.get("PITWALL_OLLAMA_MODEL", "") if use_llm else ""
-    defaults = [f["id"] for f in facts if f["id"] in ("forecast", "trend", "evidence")][:3]
+    defaults = [name for name in ("forecast", "conditions", "battle", "evidence", "trend")
+                if any(f["id"]==name for f in facts)][:2]
     ids = defaults or [facts[0]["id"]]
     source, reason = "template", "Local LLM not configured"
     if model:

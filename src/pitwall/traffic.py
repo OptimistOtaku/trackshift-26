@@ -33,7 +33,8 @@ MAX_OFF_LINE_M = 20.0
 MAX_INTERP_GAP_S = 2.0
 
 
-def _resample_positions(pos: dict, cl: Centreline, grid_hz: float = 2.0) -> pd.DataFrame:
+def _resample_positions(pos: dict, cl: Centreline, grid_hz: float = 2.0,
+                        causal: bool = False) -> pd.DataFrame:
     """Return a long frame [t, car, s] on a common time grid."""
     frames = []
     for car, df in pos.items():
@@ -65,6 +66,15 @@ def _resample_positions(pos: dict, cl: Centreline, grid_hz: float = 2.0) -> pd.D
     for car, g in long.groupby("car", sort=False):
         g = g.sort_values("t")
         ts = g["t"].to_numpy()
+        if causal:
+            # Sample-and-hold only already observed positions; never interpolate
+            # using a sample beyond the forecast's completion boundary.
+            j = np.searchsorted(ts, grid, side="right") - 1
+            safe = np.maximum(j, 0)
+            gi = g["s"].to_numpy()[safe].copy()
+            gi[(j < 0) | (grid-ts[safe] > MAX_INTERP_GAP_S)] = np.nan
+            out.append(pd.DataFrame({"t": grid, "car": car, "s": gi}))
+            continue
         # Interpolating arc length directly would smear across the start/finish wrap,
         # so interpolate on the unwrapped signal and re-wrap afterwards. Unwrap only
         # ever adds whole multiples of the lap length, so the re-wrap is exact.
@@ -103,7 +113,7 @@ def _gap_matrix(wide_s: pd.DataFrame, length: float) -> pd.DataFrame:
 
 
 def lap_traffic_features(session, cl: Centreline | None = None,
-                         grid_hz: float = 2.0) -> pd.DataFrame:
+                         grid_hz: float = 2.0, causal: bool = False) -> pd.DataFrame:
     """Per-lap traffic exposure.
 
     Returns one row per (Driver, LapNumber) with:
@@ -116,7 +126,7 @@ def lap_traffic_features(session, cl: Centreline | None = None,
         cl = build_centreline(session)
 
     pos = session.pos_data
-    grid = _resample_positions(pos, cl, grid_hz=grid_hz)
+    grid = _resample_positions(pos, cl, grid_hz=grid_hz, causal=causal)
     if grid.empty:
         return pd.DataFrame(columns=["Driver", "LapNumber", "gap_min_s", "gap_med_s",
                                      "frac_close", "frac_near"])
@@ -146,7 +156,8 @@ def lap_traffic_features(session, cl: Centreline | None = None,
             continue
 
         sl = gaps_m[col].loc[(gaps_m.index >= t0) & (gaps_m.index < t1)].dropna()
-        if len(sl) < 3:
+        coverage = min(1., len(sl) / max(1., (t1-t0)*grid_hz))
+        if len(sl) < 3 or (causal and coverage < .5):
             continue
 
         # metres -> seconds using this lap's own average speed
@@ -162,6 +173,7 @@ def lap_traffic_features(session, cl: Centreline | None = None,
             "frac_close": float(np.mean(gap_s < CLOSE_S)),
             "frac_near": float(np.mean(gap_s < NEAR_S)),
             "traffic_observed": True,
+            "traffic_coverage": coverage,
         })
 
     return pd.DataFrame(rows)

@@ -13,21 +13,40 @@ from sklearn.linear_model import Ridge
 
 SLICKS = ("SOFT", "MEDIUM", "HARD")
 PAIRS = tuple(f"{a}>{b}" for a in SLICKS for b in SLICKS)
+DECISION_SPECS = ("mean", "pair", "age", "state", "context", "shrink_context", "factorized", "environment")
 
 
 def design(stops: pd.DataFrame, spec: str) -> pd.DataFrame:
     x = pd.DataFrame(index=stops.index)
+    if spec == "mean":
+        x["constant"] = 0.
+        return x
     for pair in PAIRS:
         x[f"pair:{pair}"] = (stops.pair == pair).astype(float)
-    if spec in ("age", "state"):
+    if spec == "environment":
+        x["temperature"] = (stops.track_temp_c-35.)/10.
+        x["temperature_missing"] = stops.weather_missing
+        x["traffic"] = stops.traffic_close
+        x["traffic_missing"] = stops.traffic_missing
+        x["temperature_change"] = stops.track_temp_change_c/10.
+    if spec in ("age", "state", "context", "shrink_context", "factorized"):
         x["age"] = stops.age / 25.
         x["age2"] = (stops.age / 25.)**2
-    if spec == "state":
+    if spec in ("state", "context", "shrink_context", "factorized"):
         x["trend"] = stops.kalman_trend
         x["slope"] = stops.slope
         x["pace_displacement"] = stops.last_minus_median
         x["spread"] = stops.spread
         x["progress"] = stops.progress
+    if spec in ("context", "shrink_context", "factorized"):
+        x["field_relative"] = stops.field_relative
+        x["median3"] = stops.median3_minus_last
+        x["mean8"] = stops.mean8_minus_last
+        x["pace_scale"] = stops.pace_scale / 100.
+    if spec == "factorized":
+        for compound in SLICKS:
+            x[f"old:{compound}"] = stops.pair.str.startswith(compound+">").astype(float)
+            x[f"new:{compound}"] = stops.pair.str.endswith(">"+compound).astype(float)
     return x
 
 
@@ -51,11 +70,13 @@ class DecisionModel:
 
 
 def fit_decision(stops: pd.DataFrame, spec: str = "state") -> DecisionModel:
+    if spec not in DECISION_SPECS:
+        raise ValueError(f"Unknown decision specification: {spec}")
     if stops["round"].nunique() < 3:
         raise ValueError("Need three earlier races")
     x = design(stops, spec)
     # Pair effects shrink toward the intercept; continuous variables have explicit units.
-    model = Ridge(alpha=8.).fit(x, stops.step_obs)
+    model = Ridge(alpha=32. if spec == "shrink_context" else 8.).fit(x, stops.step_obs)
     return DecisionModel(model, spec, x.columns.tolist(),
         {k: int(v) for k, v in stops.pair.value_counts().items()},
         (float(stops.age.min()), float(stops.age.max())))

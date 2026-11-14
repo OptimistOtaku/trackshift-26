@@ -37,7 +37,9 @@ class Centreline:
         if ok.any():
             dist, idx = self._tree.query(pts[ok])
             s_out[ok] = self.s[idx]
-            d_out[ok] = dist
+            # FastF1 X/Y are decimetres; arc-length Distance is metres.
+            # Keep the tree in source coordinates, but return a metric offset.
+            d_out[ok] = dist / 10.0
         return s_out, d_out
 
 
@@ -70,6 +72,13 @@ def build_centreline(session, *, resample_m: float = 1.0,
         if len(tel) < 100:
             continue
         span = float(tel["Distance"].max() - tel["Distance"].min())
+        # Reject discontinuous position feeds before selecting the median lap.
+        # A plausible Distance channel alone cannot validate the XY geometry.
+        xy_m = tel[["X", "Y"]].to_numpy(float) / 10.0
+        segments = np.linalg.norm(np.diff(xy_m, axis=0), axis=1)
+        if (span <= 0 or not .85 <= segments.sum() / span <= 1.15
+                or segments.max() > 250):
+            continue
         cands.append((span, tel))
 
     if not cands:

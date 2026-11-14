@@ -13,7 +13,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
-from pitwall.decision import fit_decision, SLICKS
+from pitwall.decision import fit_decision, SLICKS, DECISION_SPECS
 from pitwall.intelligence import load_replays, metrics, interval_radius
 from pitwall.stopvalue import stop_table
 from benchmark_intelligence import write_json
@@ -36,12 +36,12 @@ def main():
         def select():
             if prior.empty:
                 return "pair"
-            return min(("pair", "age", "state"), key=lambda name:
+            return min(DECISION_SPECS, key=lambda name:
                 prior.assign(error=(prior[f"pred_{name}"]-prior.step_obs)**2).groupby("round").error.mean().mean())
         if rnd == 9:
             frozen = select()
         selected = frozen or select()
-        models = {spec: fit_decision(train, spec) for spec in ("pair", "age", "state")}
+        models = {spec: fit_decision(train, spec) for spec in DECISION_SPECS}
         for spec, model in models.items():
             test[f"pred_{spec}"] = model.predict(test)
         test["baseline"] = float(train.step_obs.mean())
@@ -71,14 +71,16 @@ def main():
         write_json(file, payload)
         print(f"R{rnd:02d} {selected} {len(test)} stops", flush=True)
     scored = pd.concat(results, ignore_index=True)
-    columns = ["round", "driver", "lap", "pair", "step_obs", "baseline", "pred_pair", "pred_age", "pred_state", "selected_s", "radius_s"]
+    columns = ["round", "driver", "lap", "pair", "step_obs", "baseline", *[f"pred_{s}" for s in DECISION_SPECS], "selected_s", "radius_s"]
     scored[columns].to_csv(ROOT / "artifacts/decision_predictions_2026.csv", index=False)
     final = scored.loc[scored["round"] >= 9].dropna(subset=["selected_s"])
     report = dict(selected_model=frozen, n_training_labels=len(stops),
         evaluation="R09-R12; architecture selected on R04-R08; earlier races only",
         **metrics(final.step_obs, final.selected_s),
         baseline_rmse_s=metrics(final.step_obs, final.baseline)["rmse_s"],
-        candidates={name: metrics(final.step_obs, final[f"pred_{name}"]) for name in ("pair", "age", "state")},
+        improvement_pct=100*(1-metrics(final.step_obs, final.selected_s)["rmse_s"]/metrics(final.step_obs, final.baseline)["rmse_s"]),
+        candidates={name: metrics(final.step_obs, final[f"pred_{name}"]) for name in DECISION_SPECS},
+        development_mse={name: scored.loc[scored["round"]<9].assign(error=lambda d:(d[f"pred_{name}"]-d.step_obs)**2).groupby("round").error.mean().mean() for name in DECISION_SPECS},
         limitation="Conditional on the requested compound; labels use retrospectively filtered pre/post laps.")
     write_json(ROOT / "artifacts/demo/intelligence/decision_report.json", report)
     print(json.dumps(report, indent=2))
